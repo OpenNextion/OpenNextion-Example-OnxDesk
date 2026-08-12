@@ -67,7 +67,9 @@ esp_err_t board_init(board_display_t *display) {
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_gc9a01(display->io, &panel_config, &display->panel), TAG, "create GC9A01 panel");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_reset(display->panel), TAG, "reset panel");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_init(display->panel), TAG, "initialize panel");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(display->panel, false), TAG, "disable inversion");
+    /* This ONX2424G013 GC9A01N panel needs INVON for normal RGB565 polarity.
+     * With INVOFF, the intended dark UI background renders near white. */
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(display->panel, true), TAG, "enable panel color inversion");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(display->panel, true), TAG, "enable panel");
 
     ESP_LOGI(TAG, "GC9A01 ready: %dx%d, PSRAM: %u bytes", LCD_H_RES, LCD_V_RES, (unsigned)board_psram_bytes());
