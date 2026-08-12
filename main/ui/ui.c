@@ -77,9 +77,10 @@ esp_err_t app_ui_init(const board_display_t *display) {
         .vres = DISPLAY_HEIGHT,
         .monochrome = false,
         .color_format = LV_COLOR_FORMAT_RGB565,
-        /* The ONX2424G013 panel is mounted with the X axis reversed. SPI RGB565
-         * pixels also need byte swapping before GC9A01 transmission. */
-        .rotation = { .swap_xy = false, .mirror_x = true, .mirror_y = false },
+        /* The physical panel is installed for a cable-down enclosure orientation:
+         * rotate the already-correct logical image 90 degrees clockwise. SPI
+         * RGB565 pixels also need byte swapping before GC9A01 transmission. */
+        .rotation = { .swap_xy = true, .mirror_x = true, .mirror_y = true },
         .flags = { .buff_dma = false, .buff_spiram = true, .swap_bytes = true },
     };
     lvgl_display = lvgl_port_add_disp(&display_config);
