@@ -12,6 +12,7 @@ typedef enum {
     PAGE_NEWS_CATEGORY_PICKER,
     PAGE_NEWS_LIST,
     PAGE_NEWS_QR,
+    PAGE_DISPLAY_TEST,
 } app_page_t;
 
 typedef enum {

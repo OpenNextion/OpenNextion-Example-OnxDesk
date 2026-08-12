@@ -29,6 +29,9 @@ void navigation_short_press(navigation_t *navigation) {
     } else if (navigation->page == PAGE_NEWS_LIST) {
         navigation->parent_page = PAGE_NEWS_LIST;
         navigation->page = PAGE_NEWS_QR;
+    } else if (navigation->page == PAGE_SETTINGS) {
+        navigation->parent_page = PAGE_SETTINGS;
+        navigation->page = PAGE_DISPLAY_TEST;
     }
 }
 
@@ -40,6 +43,6 @@ bool navigation_long_press(navigation_t *navigation) {
 }
 
 const char *navigation_page_name(app_page_t page) {
-    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR" };
-    return page <= PAGE_NEWS_QR ? names[page] : "Unknown";
+    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test" };
+    return page <= PAGE_DISPLAY_TEST ? names[page] : "Unknown";
 }
