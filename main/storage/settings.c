@@ -1,0 +1,61 @@
+#include "settings.h"
+
+#include <string.h>
+#include "nvs.h"
+#include "nvs_flash.h"
+#include "esp_check.h"
+
+#define SETTINGS_NAMESPACE "onxdesk"
+#define SETTINGS_KEY "settings"
+
+static void settings_defaults(app_settings_t *settings) {
+    memset(settings, 0, sizeof(*settings));
+    settings->home_page = HOME_CLOCK;
+    settings->brightness_percent = 75;
+    settings->encoder_step = 1;
+}
+
+esp_err_t settings_init(void) {
+    esp_err_t error = nvs_flash_init();
+    if (error == ESP_ERR_NVS_NO_FREE_PAGES || error == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        error = nvs_flash_init();
+    }
+    return error;
+}
+
+esp_err_t settings_load(app_settings_t *settings) {
+    if (settings == NULL) return ESP_ERR_INVALID_ARG;
+    settings_defaults(settings);
+    nvs_handle_t handle;
+    esp_err_t error = nvs_open(SETTINGS_NAMESPACE, NVS_READONLY, &handle);
+    if (error == ESP_ERR_NVS_NOT_FOUND) return ESP_OK;
+    if (error != ESP_OK) return error;
+    size_t size = sizeof(*settings);
+    error = nvs_get_blob(handle, SETTINGS_KEY, settings, &size);
+    nvs_close(handle);
+    return (error == ESP_OK && size == sizeof(*settings)) ? ESP_OK : error;
+}
+
+esp_err_t settings_save(const app_settings_t *settings) {
+    if (settings == NULL) return ESP_ERR_INVALID_ARG;
+    nvs_handle_t handle;
+    ESP_RETURN_ON_ERROR(nvs_open(SETTINGS_NAMESPACE, NVS_READWRITE, &handle), "settings", "open NVS");
+    esp_err_t error = nvs_set_blob(handle, SETTINGS_KEY, settings, sizeof(*settings));
+    if (error == ESP_OK) error = nvs_commit(handle);
+    nvs_close(handle);
+    return error;
+}
+
+esp_err_t settings_factory_reset(void) {
+    nvs_handle_t handle;
+    ESP_RETURN_ON_ERROR(nvs_open(SETTINGS_NAMESPACE, NVS_READWRITE, &handle), "settings", "open NVS");
+    esp_err_t error = nvs_erase_all(handle);
+    if (error == ESP_OK) error = nvs_commit(handle);
+    nvs_close(handle);
+    return error;
+}
+
+bool settings_has_market_key(const app_settings_t *settings) {
+    return settings != NULL && settings->finnhub_api_key[0] != '\0';
+}
