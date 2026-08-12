@@ -34,7 +34,7 @@ The News home page shows the leading item for World, Business and Technology. En
 
 ## Status
 
-The initial hardware bring-up scaffold is in place: GC9A01N SPI initialization, 8 MB PSRAM report, persistent settings, navigation state transitions, and GPIO input events. The next implementation step is LVGL 9 rendering, followed by Wi-Fi provisioning and the data-service clients.
+The hardware bring-up and the first UI foundation are in place: GC9A01N SPI initialization, 8 MB PSRAM report, persistent settings, input navigation, and the dark circular LVGL 9 layouts for all six channels. The UI currently uses clearly labelled local placeholder data until Wi-Fi provisioning and the data-service clients are added. The next implementation steps are captive-portal setup, SNTP, and the provider clients.
 
 ## Data notice
 

@@ -22,7 +22,7 @@ void app_main(void) {
 
     navigation_t navigation;
     navigation_init(&navigation);
-    app_ui_render(&navigation);
+    app_ui_render(&navigation, &settings);
     ESP_LOGI(TAG, "ONX Desk booted. Default page: %s; city configured: %s; market key: %s",
              navigation_page_name(navigation.page),
              settings.city[0] ? "yes" : "no",
@@ -41,7 +41,7 @@ void app_main(void) {
             ESP_ERROR_CHECK(settings_factory_reset());
             esp_restart();
         }
-        app_ui_render(&navigation);
+        app_ui_render(&navigation, &settings);
         ESP_LOGI(TAG, "current page: %s", navigation_page_name(navigation.page));
     }
 }
