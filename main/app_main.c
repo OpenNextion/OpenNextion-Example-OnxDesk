@@ -1,6 +1,7 @@
 #include "board.h"
 #include "input.h"
 #include "navigation.h"
+#include "network.h"
 #include "settings.h"
 #include "ui.h"
 
@@ -14,6 +15,7 @@ void app_main(void) {
 
     app_settings_t settings;
     ESP_ERROR_CHECK(settings_load(&settings));
+    ESP_ERROR_CHECK(network_init());
 
     board_display_t display = {0};
     ESP_ERROR_CHECK(board_init(&display));
@@ -22,6 +24,7 @@ void app_main(void) {
 
     navigation_t navigation;
     navigation_init(&navigation);
+    if (!network_is_connected()) navigation.page = PAGE_PROVISIONING;
     app_ui_render(&navigation, &settings);
     ESP_LOGI(TAG, "ONX Desk booted. Default page: %s; city configured: %s; market key: %s",
              navigation_page_name(navigation.page),
@@ -31,6 +34,10 @@ void app_main(void) {
     input_event_t event;
     while (true) {
         if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
+            if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
+                navigation.page = PAGE_CLOCK;
+                app_ui_render(&navigation, &settings);
+            }
             if (navigation.page == PAGE_CLOCK) app_ui_render(&navigation, &settings);
             continue;
         }
@@ -43,6 +50,7 @@ void app_main(void) {
         } else if (event.type == INPUT_EVENT_BOOT_FACTORY_RESET) {
             ESP_LOGW(TAG, "BOOT held for 3 seconds; clearing all local settings");
             ESP_ERROR_CHECK(settings_factory_reset());
+            ESP_ERROR_CHECK(network_factory_reset());
             esp_restart();
         }
         app_ui_render(&navigation, &settings);

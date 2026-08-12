@@ -23,6 +23,10 @@ The firmware does not scrape finance or news websites. Market API keys stay in t
 
 On the Weather channel, a short press switches between current conditions and the three-day forecast.
 
+## Wi-Fi setup
+
+On a new device (or after a BOOT factory reset), OnxDesk starts the open `OnxDesk-Setup` Wi-Fi network and shows the setup guide on the display. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. The device keeps the setup network available until its next restart and switches to Clock after it receives a station IP address.
+
 The News home page shows the leading item for World, Business and Technology. Enter the category picker, then a category list. Selecting an item shows a QR code for the original article.
 
 ## Hardware pin map

@@ -5,6 +5,7 @@
 #include "esp_check.h"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#include "network.h"
 
 #define DISPLAY_WIDTH 240
 #define DISPLAY_HEIGHT 240
@@ -260,6 +261,22 @@ static void render_settings(lv_obj_t *screen, const app_settings_t *settings) {
     add_channel_nav(screen, PAGE_SETTINGS);
 }
 
+static void render_provisioning(lv_obj_t *screen) {
+    add_header(screen, "WI-FI SETUP");
+    lv_obj_t *title = label_new(screen, network_is_connecting() ? "Connecting to Wi-Fi" : "Connect your phone", &lv_font_montserrat_20, COLOR_PRIMARY);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -44);
+    lv_obj_t *network = label_new(screen, "OnxDesk-Setup", &lv_font_montserrat_20, COLOR_TEAL);
+    lv_obj_align(network, LV_ALIGN_CENTER, 0, -13);
+    lv_obj_t *hint = label_new(screen, "Join this open network\nthen open", &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_t *address = label_new(screen, "192.168.4.1", &lv_font_montserrat_20, COLOR_PRIMARY);
+    lv_obj_align(address, LV_ALIGN_CENTER, 0, 55);
+    lv_obj_t *footer = label_new(screen, network_is_connecting() ? "Trying saved Wi-Fi settings…" : "A setup browser may open automatically", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_set_style_text_align(footer, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -22);
+}
+
 static void add_color_swatch(lv_obj_t *parent, lv_color_t color, int x, int y) {
     lv_obj_t *swatch = panel_new(parent, x, y, 48, 48, 0, LV_OPA_COVER);
     lv_obj_set_style_radius(swatch, 8, 0);
@@ -307,6 +324,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_NEWS_LIST: render_news_list(screen, navigation); break;
         case PAGE_NEWS_QR: render_news_qr(screen); break;
         case PAGE_DISPLAY_TEST: render_display_test(screen); break;
+        case PAGE_PROVISIONING: render_provisioning(screen); break;
         default: break;
     }
     lvgl_port_unlock();

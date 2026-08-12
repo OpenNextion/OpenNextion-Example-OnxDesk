@@ -38,6 +38,7 @@ void navigation_short_press(navigation_t *navigation) {
 }
 
 bool navigation_long_press(navigation_t *navigation) {
+    if (navigation->page == PAGE_PROVISIONING) return false;
     if (navigation->page <= PAGE_SETTINGS) return false;
     navigation->page = navigation->parent_page;
     navigation->parent_page = PAGE_NEWS_HOME;
@@ -45,6 +46,6 @@ bool navigation_long_press(navigation_t *navigation) {
 }
 
 const char *navigation_page_name(app_page_t page) {
-    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test" };
-    return page <= PAGE_DISPLAY_TEST ? names[page] : "Unknown";
+    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test", "Wi-Fi setup" };
+    return page <= PAGE_PROVISIONING ? names[page] : "Unknown";
 }
