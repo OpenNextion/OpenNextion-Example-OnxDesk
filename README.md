@@ -21,6 +21,8 @@ The firmware does not scrape finance or news websites. Market API keys stay in t
 - Encoder long press: return one level.
 - BOOT (GPIO0) long press for three seconds: restore factory settings, clearing Wi-Fi, city, time zone, Finnhub API key, preferences and cached data.
 
+On the Weather channel, a short press switches between current conditions and the three-day forecast.
+
 The News home page shows the leading item for World, Business and Technology. Enter the category picker, then a category list. Selecting an item shows a QR code for the original article.
 
 ## Hardware pin map

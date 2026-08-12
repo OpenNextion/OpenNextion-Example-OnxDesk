@@ -29,7 +29,11 @@ void app_main(void) {
              settings_has_market_key(&settings) ? "yes" : "no");
 
     input_event_t event;
-    while (xQueueReceive(input_event_queue(), &event, portMAX_DELAY) == pdTRUE) {
+    while (true) {
+        if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
+            if (navigation.page == PAGE_CLOCK) app_ui_render(&navigation, &settings);
+            continue;
+        }
         if (event.type == INPUT_EVENT_ROTATE) {
             navigation_rotate(&navigation, event.value * settings.encoder_step);
         } else if (event.type == INPUT_EVENT_KEY_SHORT_PRESS) {

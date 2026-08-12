@@ -91,7 +91,34 @@ static void render_clock(lv_obj_t *screen) {
     add_channel_nav(screen, PAGE_CLOCK);
 }
 
-static void render_weather(lv_obj_t *screen, const app_settings_t *settings) {
+static void render_weather_forecast(lv_obj_t *screen, const app_settings_t *settings) {
+    const char *city = settings != NULL && settings->city[0] ? settings->city : "Choose a city";
+    lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_16, COLOR_SECONDARY);
+    lv_obj_align(city_label, LV_ALIGN_TOP_MID, 0, 25);
+    lv_obj_t *heading = label_new(screen, "3-DAY FORECAST", &lv_font_montserrat_12, COLOR_TEAL);
+    lv_obj_align(heading, LV_ALIGN_TOP_MID, 0, 52);
+    static const char *days[] = { "TODAY", "TOMORROW", "DAY 3" };
+    static const char *temperatures[] = { "31° / 25°", "30° / 24°", "29° / 23°" };
+    for (int i = 0; i < 3; i++) {
+        const int y = 78 + i * 34;
+        panel_new(screen, 24, y, 192, 28, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
+        lv_obj_t *day = label_new(screen, days[i], &lv_font_montserrat_12, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
+        lv_obj_set_pos(day, 34, y + 8);
+        lv_obj_t *condition = label_new(screen, "SUNNY", &lv_font_montserrat_12, COLOR_TEAL);
+        lv_obj_align(condition, LV_ALIGN_TOP_MID, 0, y + 8);
+        lv_obj_t *temperature = label_new(screen, settings != NULL && settings->city[0] ? temperatures[i] : "--° / --°", &lv_font_montserrat_12, COLOR_SECONDARY);
+        lv_obj_set_pos(temperature, 150, y + 8);
+    }
+    lv_obj_t *hint = label_new(screen, "Press for current weather", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
+    add_channel_nav(screen, PAGE_WEATHER);
+}
+
+static void render_weather(lv_obj_t *screen, const navigation_t *navigation, const app_settings_t *settings) {
+    if (navigation->weather_forecast) {
+        render_weather_forecast(screen, settings);
+        return;
+    }
     const char *city = settings != NULL && settings->city[0] ? settings->city : "Choose a city";
     lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_16, COLOR_SECONDARY);
     lv_obj_align(city_label, LV_ALIGN_TOP_MID, 0, 25);
@@ -104,6 +131,8 @@ static void render_weather(lv_obj_t *screen, const app_settings_t *settings) {
     lv_obj_t *details = label_new(screen, settings != NULL && settings->city[0] ? "Humidity 72% · Wind 8 km/h\nH 31° · L 25°" : "Open Settings for city setup", &lv_font_montserrat_12, COLOR_SECONDARY);
     lv_obj_set_style_text_align(details, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(details, LV_ALIGN_CENTER, 0, 58);
+    lv_obj_t *hint = label_new(screen, "Press for 3-day forecast", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_WEATHER);
 }
 
@@ -269,7 +298,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
     switch (navigation->page) {
         case PAGE_CLOCK: render_clock(screen); break;
-        case PAGE_WEATHER: render_weather(screen, settings); break;
+        case PAGE_WEATHER: render_weather(screen, navigation, settings); break;
         case PAGE_CRYPTO: render_crypto(screen); break;
         case PAGE_MARKETS: render_markets(screen, settings); break;
         case PAGE_NEWS_HOME: render_news_home(screen, navigation); break;

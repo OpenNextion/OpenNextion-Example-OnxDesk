@@ -19,7 +19,9 @@ void navigation_rotate(navigation_t *navigation, int steps) {
 }
 
 void navigation_short_press(navigation_t *navigation) {
-    if (navigation->page == PAGE_NEWS_HOME) {
+    if (navigation->page == PAGE_WEATHER) {
+        navigation->weather_forecast = !navigation->weather_forecast;
+    } else if (navigation->page == PAGE_NEWS_HOME) {
         navigation->parent_page = PAGE_NEWS_HOME;
         navigation->page = PAGE_NEWS_CATEGORY_PICKER;
     } else if (navigation->page == PAGE_NEWS_CATEGORY_PICKER) {

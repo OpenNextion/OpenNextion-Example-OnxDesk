@@ -26,6 +26,7 @@ typedef struct {
     app_page_t parent_page;
     news_category_t news_category;
     unsigned int selected_index;
+    bool weather_forecast;
 } navigation_t;
 
 void navigation_init(navigation_t *navigation);
