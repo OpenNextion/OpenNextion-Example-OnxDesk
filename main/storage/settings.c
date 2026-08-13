@@ -34,11 +34,15 @@ esp_err_t settings_load(app_settings_t *settings) {
     size_t size = sizeof(*settings);
     error = nvs_get_blob(handle, SETTINGS_KEY, settings, &size);
     nvs_close(handle);
+    /* A factory reset leaves the namespace but removes this blob. That is a
+     * normal first-boot state, not a startup error. */
+    if (error == ESP_ERR_NVS_NOT_FOUND) return ESP_OK;
     if (error == ESP_OK && size == sizeof(*settings)) {
         if (settings->encoder_step > ENCODER_SENSITIVITY_HIGH) settings->encoder_step = ENCODER_SENSITIVITY_MEDIUM;
         return ESP_OK;
     }
-    return error;
+    settings_defaults(settings);
+    return error == ESP_OK ? ESP_OK : error;
 }
 
 esp_err_t settings_save(const app_settings_t *settings) {
