@@ -337,7 +337,7 @@ static void render_provisioning(lv_obj_t *screen) {
     const bool failed = network_connection_failed();
     lv_obj_t *title = label_new(screen, failed ? "Connection failed" : network_is_connecting() ? "Connecting to Wi-Fi" : "Connect your phone", &lv_font_montserrat_20, failed ? COLOR_RED : COLOR_PRIMARY);
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -44);
-    lv_obj_t *network = label_new(screen, "OnxDesk-Setup", &lv_font_montserrat_20, COLOR_TEAL);
+    lv_obj_t *network = label_new(screen, network_setup_ssid(), &lv_font_montserrat_20, COLOR_TEAL);
     lv_obj_align(network, LV_ALIGN_CENTER, 0, -13);
     lv_obj_t *hint = label_new(screen, "Join this open network\nthen open", &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);

@@ -33,4 +33,5 @@ esp_err_t settings_init(void);
 esp_err_t settings_load(app_settings_t *settings);
 esp_err_t settings_save(const app_settings_t *settings);
 esp_err_t settings_factory_reset(void);
+esp_err_t settings_get_setup_ssid(char *ssid, size_t ssid_size);
 bool settings_has_market_key(const app_settings_t *settings);

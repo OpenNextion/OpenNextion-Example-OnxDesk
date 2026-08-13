@@ -17,4 +17,5 @@ bool network_get_weather(weather_snapshot_t *weather);
 bool network_weather_is_refreshing(void);
 void network_request_weather_refresh(void);
 bool network_local_url(char *buffer, size_t buffer_size);
+const char *network_setup_ssid(void);
 esp_err_t network_factory_reset(void);

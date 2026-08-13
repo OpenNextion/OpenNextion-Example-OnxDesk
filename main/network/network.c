@@ -17,7 +17,6 @@
 #include "providers.h"
 #include "settings.h"
 
-#define SETUP_AP_SSID "OnxDesk-Setup"
 #define SETUP_PAGE_IP "192.168.4.1"
 #define MAX_FORM_BODY 256
 #define MAX_CONNECT_RETRIES 5
@@ -35,6 +34,7 @@ static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
 static bool pending_station_config_valid;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
+static char setup_ap_ssid[sizeof(((wifi_ap_config_t *)0)->ssid)];
 static char station_ip[16];
 static app_settings_t *active_settings;
 static weather_snapshot_t latest_weather;
@@ -523,8 +523,8 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
 
 static void start_softap(void) {
     wifi_config_t ap_config = {0};
-    strlcpy((char *)ap_config.ap.ssid, SETUP_AP_SSID, sizeof(ap_config.ap.ssid));
-    ap_config.ap.ssid_len = strlen(SETUP_AP_SSID);
+    strlcpy((char *)ap_config.ap.ssid, setup_ap_ssid, sizeof(ap_config.ap.ssid));
+    ap_config.ap.ssid_len = strlen(setup_ap_ssid);
     ap_config.ap.channel = 1;
     ap_config.ap.max_connection = 4;
     ap_config.ap.authmode = WIFI_AUTH_OPEN;
@@ -545,6 +545,7 @@ static void advertise_captive_portal(esp_netif_t *netif) {
 esp_err_t network_init(app_settings_t *settings) {
     if (settings == NULL) return ESP_ERR_INVALID_ARG;
     active_settings = settings;
+    ESP_RETURN_ON_ERROR(settings_get_setup_ssid(setup_ap_ssid, sizeof(setup_ap_ssid)), TAG, "create setup Wi-Fi name");
     ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "initialize network interface");
     ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "create event loop");
     esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
@@ -569,7 +570,7 @@ esp_err_t network_init(app_settings_t *settings) {
         connect_requested = true;
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_connect());
     }
-    ESP_LOGI(TAG, "Wi-Fi setup ready: connect to %s and open http://%s", SETUP_AP_SSID, SETUP_PAGE_IP);
+    ESP_LOGI(TAG, "Wi-Fi setup ready: connect to %s and open http://%s", setup_ap_ssid, SETUP_PAGE_IP);
     return ESP_OK;
 }
 
@@ -584,6 +585,7 @@ bool network_get_weather(weather_snapshot_t *weather) {
     return true;
 }
 bool network_weather_is_refreshing(void) { return weather_refreshing; }
+const char *network_setup_ssid(void) { return setup_ap_ssid; }
 bool network_local_url(char *buffer, size_t buffer_size) {
     if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;
     return snprintf(buffer, buffer_size, "http://%s/", station_ip) < (int)buffer_size;
