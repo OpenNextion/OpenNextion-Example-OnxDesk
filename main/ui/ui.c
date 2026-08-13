@@ -333,6 +333,29 @@ static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) 
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
 }
 
+static void render_city_setup(lv_obj_t *screen) {
+    char url[40] = {0};
+    const bool available = network_local_url(url, sizeof(url));
+    add_header(screen, "CITY SETUP");
+    lv_obj_t *title = label_new(screen, "Scan to set your city", &lv_font_montserrat_16, COLOR_PRIMARY);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 38);
+    if (available) {
+        lv_obj_t *qr = lv_qrcode_create(screen);
+        lv_qrcode_set_size(qr, 154);
+        lv_qrcode_set_dark_color(qr, lv_color_hex(COLOR_BG));
+        lv_qrcode_set_light_color(qr, lv_color_hex(COLOR_PRIMARY));
+        lv_qrcode_set_quiet_zone(qr, true);
+        if (lv_qrcode_update(qr, url, strlen(url)) != LV_RESULT_OK) {
+            lv_obj_del(qr);
+        } else {
+            lv_obj_align(qr, LV_ALIGN_CENTER, 0, 2);
+        }
+    }
+    lv_obj_t *hint = label_new(screen, available ? "Phone: same Wi-Fi router\nCity saves automatically" : "Waiting for Wi-Fi address", &lv_font_montserrat_12, COLOR_SECONDARY);
+    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -18);
+}
+
 static void render_provisioning(lv_obj_t *screen) {
     add_header(screen, "WI-FI SETUP");
     const bool failed = network_connection_failed();
@@ -424,6 +447,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_LOADING: render_loading(screen, settings); break;
         case PAGE_SETTINGS_MENU: render_settings_menu(screen, navigation, settings); break;
         case PAGE_CONFIG_URL: render_config_url(screen, navigation); break;
+        case PAGE_CITY_SETUP: render_city_setup(screen); break;
         default: break;
     }
     lvgl_port_unlock();

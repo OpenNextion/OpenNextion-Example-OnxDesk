@@ -54,7 +54,11 @@ void app_main(void) {
     while (true) {
         if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
             if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
-                navigation.page = PAGE_LOADING;
+                navigation.page = settings.city[0] == '\0' ? PAGE_CITY_SETUP : PAGE_LOADING;
+                app_ui_render(&navigation, &settings);
+            } else if (navigation.page == PAGE_CITY_SETUP && settings.city[0] != '\0') {
+                weather_snapshot_t weather = {0};
+                if (network_get_weather(&weather)) navigation.page = PAGE_CLOCK;
                 app_ui_render(&navigation, &settings);
             } else if (navigation.page == PAGE_LOADING && network_initial_sync_complete()) {
                 navigation.page = PAGE_CLOCK;

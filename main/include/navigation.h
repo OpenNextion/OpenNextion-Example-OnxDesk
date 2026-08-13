@@ -17,6 +17,7 @@ typedef enum {
     PAGE_LOADING,
     PAGE_SETTINGS_MENU,
     PAGE_CONFIG_URL,
+    PAGE_CITY_SETUP,
 } app_page_t;
 
 typedef enum {
