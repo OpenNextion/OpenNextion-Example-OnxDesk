@@ -38,6 +38,8 @@ void navigation_short_press(navigation_t *navigation) {
     } else if (navigation->page == PAGE_NEWS_LIST) {
         navigation->parent_page = PAGE_NEWS_LIST;
         navigation->page = PAGE_NEWS_QR;
+    } else if (navigation->page == PAGE_CITY_SETUP) {
+        navigation->city_setup_show_qr = true;
     } else if (navigation->page == PAGE_SETTINGS) {
         navigation->parent_page = PAGE_SETTINGS;
         navigation->settings_item = SETTINGS_WIFI;
@@ -61,6 +63,12 @@ bool navigation_long_press(navigation_t *navigation) {
         case PAGE_NEWS_CATEGORY_PICKER: navigation->page = PAGE_NEWS_HOME; return true;
         case PAGE_DISPLAY_TEST: navigation->page = PAGE_SETTINGS_MENU; return true;
         case PAGE_CONFIG_URL: navigation->page = PAGE_SETTINGS_MENU; return true;
+        case PAGE_CITY_SETUP:
+            if (navigation->city_setup_show_qr) {
+                navigation->city_setup_show_qr = false;
+                return true;
+            }
+            return false;
         case PAGE_SETTINGS_MENU: navigation->page = PAGE_SETTINGS; return true;
         default: return false;
     }

@@ -333,10 +333,21 @@ static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) 
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
 }
 
-static void render_city_setup(lv_obj_t *screen) {
+static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) {
     char url[40] = {0};
     const bool available = network_local_url(url, sizeof(url));
     add_header(screen, "CITY SETUP");
+    const bool show_qr = navigation != NULL && navigation->city_setup_show_qr;
+    if (!show_qr) {
+        lv_obj_t *title = label_new(screen, "Connect your phone", &lv_font_montserrat_20, COLOR_PRIMARY);
+        lv_obj_align(title, LV_ALIGN_CENTER, 0, -34);
+        lv_obj_t *instruction = label_new(screen, "Connect to the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
+        lv_obj_set_style_text_align(instruction, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 4);
+        lv_obj_t *hint = label_new(screen, "Press to show setup QR", &lv_font_montserrat_14, COLOR_TEAL);
+        lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
+        return;
+    }
     lv_obj_t *title = label_new(screen, "Scan to set your city", &lv_font_montserrat_16, COLOR_PRIMARY);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 38);
     if (available) {
@@ -447,7 +458,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_LOADING: render_loading(screen, settings); break;
         case PAGE_SETTINGS_MENU: render_settings_menu(screen, navigation, settings); break;
         case PAGE_CONFIG_URL: render_config_url(screen, navigation); break;
-        case PAGE_CITY_SETUP: render_city_setup(screen); break;
+        case PAGE_CITY_SETUP: render_city_setup(screen, navigation); break;
         default: break;
     }
     lvgl_port_unlock();

@@ -43,6 +43,7 @@ typedef struct {
     unsigned int selected_index;
     settings_menu_item_t settings_item;
     bool weather_forecast;
+    bool city_setup_show_qr;
 } navigation_t;
 
 void navigation_init(navigation_t *navigation);
