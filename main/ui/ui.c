@@ -75,12 +75,6 @@ static void clock_city_name(const app_settings_t *settings, char *name, size_t n
     if (length >= name_size) length = name_size - 1;
     memcpy(name, source, length);
     name[length] = '\0';
-    if (length > 15) {
-        name[12] = '.';
-        name[13] = '.';
-        name[14] = '.';
-        name[15] = '\0';
-    }
 }
 
 static void render_clock(lv_obj_t *screen, const app_settings_t *settings) {
@@ -107,10 +101,11 @@ static void render_clock(lv_obj_t *screen, const app_settings_t *settings) {
     lv_obj_set_style_arc_opa(ring, LV_OPA_60, LV_PART_INDICATOR);
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
 
-    char city[20] = {0};
+    char city[sizeof(((app_settings_t *)0)->city)] = {0};
     clock_city_name(settings, city, sizeof(city));
     lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_set_width(city_label, 180);
+    lv_label_set_long_mode(city_label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
     lv_obj_set_style_text_align(city_label, LV_TEXT_ALIGN_CENTER, 0);
     add_wifi_signal(screen, 109);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48, COLOR_PRIMARY);
