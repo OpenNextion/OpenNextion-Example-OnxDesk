@@ -10,6 +10,25 @@
 
 static const char *TAG = "onxdesk";
 
+static int apply_encoder_sensitivity(int raw_steps, uint8_t sensitivity) {
+    static int low_sensitivity_accumulator;
+    if (sensitivity == ENCODER_SENSITIVITY_LOW) {
+        low_sensitivity_accumulator += raw_steps;
+        if (low_sensitivity_accumulator > -2 && low_sensitivity_accumulator < 2) return 0;
+        const int adjusted = low_sensitivity_accumulator > 0 ? 1 : -1;
+        low_sensitivity_accumulator = 0;
+        return adjusted;
+    }
+    low_sensitivity_accumulator = 0;
+    return raw_steps * (sensitivity == ENCODER_SENSITIVITY_HIGH ? 2 : 1);
+}
+
+static void advance_encoder_sensitivity(app_settings_t *settings) {
+    settings->encoder_step = (uint8_t)((settings->encoder_step + 1) % 3);
+    ESP_ERROR_CHECK(settings_save(settings));
+    ESP_LOGI(TAG, "encoder sensitivity changed to %u", settings->encoder_step);
+}
+
 void app_main(void) {
     ESP_ERROR_CHECK(settings_init());
 
@@ -47,9 +66,13 @@ void app_main(void) {
             continue;
         }
         if (event.type == INPUT_EVENT_ROTATE) {
-            navigation_rotate(&navigation, event.value * settings.encoder_step);
+            navigation_rotate(&navigation, apply_encoder_sensitivity(event.value, settings.encoder_step));
         } else if (event.type == INPUT_EVENT_KEY_SHORT_PRESS) {
-            navigation_short_press(&navigation);
+            if (navigation.page == PAGE_SETTINGS_MENU && navigation.settings_item == SETTINGS_SENSITIVITY) {
+                advance_encoder_sensitivity(&settings);
+            } else {
+                navigation_short_press(&navigation);
+            }
         } else if (event.type == INPUT_EVENT_KEY_LONG_PRESS) {
             navigation_long_press(&navigation);
         } else if (event.type == INPUT_EVENT_BOOT_FACTORY_RESET) {

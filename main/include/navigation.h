@@ -15,7 +15,18 @@ typedef enum {
     PAGE_DISPLAY_TEST,
     PAGE_PROVISIONING,
     PAGE_LOADING,
+    PAGE_SETTINGS_MENU,
 } app_page_t;
+
+typedef enum {
+    SETTINGS_WIFI = 0,
+    SETTINGS_CITY,
+    SETTINGS_SENSITIVITY,
+    SETTINGS_FINNHUB,
+    SETTINGS_ABOUT,
+    SETTINGS_DISPLAY_TEST,
+    SETTINGS_MENU_COUNT,
+} settings_menu_item_t;
 
 typedef enum {
     NEWS_WORLD = 0,
@@ -28,6 +39,7 @@ typedef struct {
     app_page_t parent_page;
     news_category_t news_category;
     unsigned int selected_index;
+    settings_menu_item_t settings_item;
     bool weather_forecast;
 } navigation_t;
 

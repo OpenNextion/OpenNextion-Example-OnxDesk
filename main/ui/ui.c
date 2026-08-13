@@ -44,7 +44,7 @@ static lv_obj_t *panel_new(lv_obj_t *parent, int x, int y, int width, int height
 }
 
 static void add_channel_nav(lv_obj_t *screen, app_page_t page) {
-    const int active = page <= PAGE_SETTINGS ? (int)page : 4;
+    const int active = page <= PAGE_SETTINGS ? (int)page : page == PAGE_SETTINGS_MENU ? 5 : 4;
     for (int i = 0; i < 6; i++) {
         lv_obj_t *dot = panel_new(screen, 77 + i * 17, 210, 6, 6, i == active ? COLOR_TEAL : 0x3A3A4E, LV_OPA_COVER);
         lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
@@ -251,20 +251,48 @@ static void render_news_qr(lv_obj_t *screen) {
     lv_obj_align(headline, LV_ALIGN_BOTTOM_MID, 0, -27);
 }
 
+static const char *encoder_sensitivity_name(const app_settings_t *settings) {
+    if (settings == NULL) return "Medium";
+    switch (settings->encoder_step) {
+        case ENCODER_SENSITIVITY_LOW: return "Low";
+        case ENCODER_SENSITIVITY_HIGH: return "High";
+        default: return "Medium";
+    }
+}
+
 static void render_settings(lv_obj_t *screen, const app_settings_t *settings) {
     add_header(screen, "SETTINGS");
     const char *city = settings != NULL && settings->city[0] ? settings->city : "Not configured";
     const char *market = settings != NULL && settings_has_market_key(settings) ? "Configured" : "Not configured";
-    const char *labels[] = { "WiFi", "City", "Finnhub Key", "About" };
-    const char *details[] = { "Local setup page", city, market, "OnxDesk · ONX2424G013" };
-    for (int i = 0; i < 4; i++) {
-        panel_new(screen, 20, 50 + i * 36, 200, 30, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
+    const char *labels[] = { "WiFi", "City", "Sensitivity", "Finnhub Key", "About" };
+    const char *details[] = { "Local setup page", city, encoder_sensitivity_name(settings), market, "OnxDesk · ONX2424G013" };
+    for (int i = 0; i < 5; i++) {
+        panel_new(screen, 20, 50 + i * 29, 200, 24, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
         lv_obj_t *label = label_new(screen, labels[i], &lv_font_montserrat_14, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
-        lv_obj_set_pos(label, 30, 55 + i * 36);
+        lv_obj_set_pos(label, 30, 54 + i * 29);
         lv_obj_t *detail = label_new(screen, details[i], &lv_font_montserrat_12, COLOR_MUTED);
-        lv_obj_set_pos(detail, 104, 57 + i * 36);
+        lv_obj_set_pos(detail, 112, 56 + i * 29);
     }
-    lv_obj_t *hint = label_new(screen, "Press: display test", &lv_font_montserrat_12, COLOR_RED);
+    lv_obj_t *hint = label_new(screen, "Press to edit controls", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
+    add_channel_nav(screen, PAGE_SETTINGS);
+}
+
+static void render_settings_menu(lv_obj_t *screen, const navigation_t *navigation, const app_settings_t *settings) {
+    static const char *labels[] = { "WiFi setup", "City", "Sensitivity", "Finnhub Key", "About", "Display test" };
+    add_header(screen, "SETTINGS MENU");
+    for (int i = 0; i < SETTINGS_MENU_COUNT; i++) {
+        const bool selected = i == navigation->settings_item;
+        const int y = 48 + i * 23;
+        panel_new(screen, 20, y, 200, 20, selected ? COLOR_TEAL : COLOR_SURFACE, selected ? LV_OPA_30 : LV_OPA_40);
+        lv_obj_t *label = label_new(screen, labels[i], &lv_font_montserrat_14, selected ? COLOR_PRIMARY : COLOR_SECONDARY);
+        lv_obj_set_pos(label, 30, y + 3);
+        if (i == SETTINGS_SENSITIVITY) {
+            lv_obj_t *value = label_new(screen, encoder_sensitivity_name(settings), &lv_font_montserrat_12, selected ? COLOR_TEAL : COLOR_MUTED);
+            lv_obj_set_pos(value, 157, y + 4);
+        }
+    }
+    lv_obj_t *hint = label_new(screen, navigation->settings_item == SETTINGS_SENSITIVITY ? "Press: Low · Medium · High" : "Rotate · Press · Long press back", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_SETTINGS);
 }
@@ -356,6 +384,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_DISPLAY_TEST: render_display_test(screen); break;
         case PAGE_PROVISIONING: render_provisioning(screen); break;
         case PAGE_LOADING: render_loading(screen, settings); break;
+        case PAGE_SETTINGS_MENU: render_settings_menu(screen, navigation, settings); break;
         default: break;
     }
     lvgl_port_unlock();

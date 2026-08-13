@@ -12,7 +12,7 @@ static void settings_defaults(app_settings_t *settings) {
     memset(settings, 0, sizeof(*settings));
     settings->home_page = HOME_CLOCK;
     settings->brightness_percent = 75;
-    settings->encoder_step = 1;
+    settings->encoder_step = ENCODER_SENSITIVITY_MEDIUM;
 }
 
 esp_err_t settings_init(void) {
@@ -34,7 +34,11 @@ esp_err_t settings_load(app_settings_t *settings) {
     size_t size = sizeof(*settings);
     error = nvs_get_blob(handle, SETTINGS_KEY, settings, &size);
     nvs_close(handle);
-    return (error == ESP_OK && size == sizeof(*settings)) ? ESP_OK : error;
+    if (error == ESP_OK && size == sizeof(*settings)) {
+        if (settings->encoder_step > ENCODER_SENSITIVITY_HIGH) settings->encoder_step = ENCODER_SENSITIVITY_MEDIUM;
+        return ESP_OK;
+    }
+    return error;
 }
 
 esp_err_t settings_save(const app_settings_t *settings) {
