@@ -348,8 +348,6 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
         lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
         return;
     }
-    lv_obj_t *title = label_new(screen, "Scan to set your city", &lv_font_montserrat_16, COLOR_PRIMARY);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 38);
     if (available) {
         lv_obj_t *qr = lv_qrcode_create(screen);
         lv_qrcode_set_size(qr, 154);
