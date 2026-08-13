@@ -35,9 +35,12 @@ void app_main(void) {
     while (true) {
         if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
             if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
+                navigation.page = PAGE_LOADING;
+                app_ui_render(&navigation, &settings);
+            } else if (navigation.page == PAGE_LOADING && network_initial_sync_complete()) {
                 navigation.page = PAGE_CLOCK;
                 app_ui_render(&navigation, &settings);
-            } else if (navigation.page == PAGE_PROVISIONING) {
+            } else if (navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_LOADING) {
                 app_ui_render(&navigation, &settings);
             }
             if (navigation.page == PAGE_CLOCK) app_ui_render(&navigation, &settings);

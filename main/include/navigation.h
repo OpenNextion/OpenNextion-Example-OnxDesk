@@ -14,6 +14,7 @@ typedef enum {
     PAGE_NEWS_QR,
     PAGE_DISPLAY_TEST,
     PAGE_PROVISIONING,
+    PAGE_LOADING,
 } app_page_t;
 
 typedef enum {

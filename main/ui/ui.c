@@ -278,6 +278,27 @@ static void render_provisioning(lv_obj_t *screen) {
     lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -22);
 }
 
+static void loading_row(lv_obj_t *screen, int y, const char *label, const char *status, uint32_t color) {
+    lv_obj_t *label_widget = label_new(screen, label, &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_set_pos(label_widget, 32, y);
+    lv_obj_t *status_widget = label_new(screen, status, &lv_font_montserrat_12, color);
+    lv_obj_set_pos(status_widget, 132, y + 2);
+}
+
+static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
+    const bool time_ready = network_time_is_synced();
+    const bool sync_finished = network_initial_sync_complete();
+    add_header(screen, "STARTING ONXDESK");
+    lv_obj_t *title = label_new(screen, "Preparing your desk", &lv_font_montserrat_20, COLOR_PRIMARY);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 52);
+    loading_row(screen, 91, "Wi-Fi", "Connected", COLOR_GREEN);
+    loading_row(screen, 120, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing…", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
+    loading_row(screen, 149, "Weather", settings != NULL && settings->city[0] ? "Location ready" : "City not set", settings != NULL && settings->city[0] ? COLOR_GREEN : COLOR_MUTED);
+    loading_row(screen, 178, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
+    lv_obj_t *footer = label_new(screen, sync_finished ? "Opening Clock" : "Opening Clock after time setup", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -24);
+}
+
 static void add_color_swatch(lv_obj_t *parent, lv_color_t color, int x, int y) {
     lv_obj_t *swatch = panel_new(parent, x, y, 48, 48, 0, LV_OPA_COVER);
     lv_obj_set_style_radius(swatch, 8, 0);
@@ -326,6 +347,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_NEWS_QR: render_news_qr(screen); break;
         case PAGE_DISPLAY_TEST: render_display_test(screen); break;
         case PAGE_PROVISIONING: render_provisioning(screen); break;
+        case PAGE_LOADING: render_loading(screen, settings); break;
         default: break;
     }
     lvgl_port_unlock();

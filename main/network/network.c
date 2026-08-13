@@ -9,6 +9,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_netif.h"
+#include "esp_netif_sntp.h"
 #include "esp_wifi.h"
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
@@ -23,10 +24,43 @@ static volatile bool connected;
 static volatile bool connect_requested;
 static volatile bool connection_failed;
 static volatile bool configure_after_disconnect;
+static volatile bool initial_sync_started;
+static volatile bool initial_sync_completed;
+static volatile bool time_synced;
 static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
 static bool pending_station_config_valid;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
+
+static void initial_sync_task(void *argument) {
+    (void)argument;
+    const esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("time.cloudflare.com");
+    esp_err_t error = esp_netif_sntp_init(&config);
+    if (error == ESP_OK) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            if (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(2000)) == ESP_OK) {
+                time_synced = true;
+                break;
+            }
+        }
+    }
+    if (time_synced) {
+        ESP_LOGI(TAG, "initial time synchronization complete");
+    } else {
+        ESP_LOGW(TAG, "initial time synchronization timed out; SNTP will keep retrying");
+    }
+    initial_sync_completed = true;
+    vTaskDelete(NULL);
+}
+
+static void start_initial_sync(void) {
+    if (initial_sync_started) return;
+    initial_sync_started = true;
+    if (xTaskCreate(initial_sync_task, "initial_sync", 4096, NULL, 5, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "failed to start initial sync task");
+        initial_sync_completed = true;
+    }
+}
 
 typedef struct __attribute__((packed)) {
     uint16_t id;
@@ -307,6 +341,7 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
         connect_requested = false;
         connection_failed = false;
         connection_retries = 0;
+        start_initial_sync();
         ESP_LOGI(TAG, "Wi-Fi connected; OnxDesk data services may start");
     }
 }
@@ -364,4 +399,6 @@ esp_err_t network_init(void) {
 bool network_is_connected(void) { return connected; }
 bool network_is_connecting(void) { return connect_requested && !connected; }
 bool network_connection_failed(void) { return connection_failed; }
+bool network_initial_sync_complete(void) { return initial_sync_completed; }
+bool network_time_is_synced(void) { return time_synced; }
 esp_err_t network_factory_reset(void) { return esp_wifi_restore(); }

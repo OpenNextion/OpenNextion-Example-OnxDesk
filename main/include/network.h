@@ -8,4 +8,6 @@ esp_err_t network_init(void);
 bool network_is_connected(void);
 bool network_is_connecting(void);
 bool network_connection_failed(void);
+bool network_initial_sync_complete(void);
+bool network_time_is_synced(void);
 esp_err_t network_factory_reset(void);
