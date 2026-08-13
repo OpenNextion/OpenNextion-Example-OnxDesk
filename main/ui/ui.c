@@ -110,25 +110,22 @@ static void render_clock(lv_obj_t *screen, const app_settings_t *settings) {
     char city[20] = {0};
     clock_city_name(settings, city, sizeof(city));
     lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_set_width(city_label, 172);
+    lv_obj_set_width(city_label, 180);
     lv_obj_set_style_text_align(city_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(city_label, LV_ALIGN_TOP_MID, -12, 22);
-    add_wifi_signal(screen, 198);
+    add_wifi_signal(screen, 109);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -10);
     lv_obj_t *date_label = label_new(screen, date_text, &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 32);
+    lv_obj_align(city_label, LV_ALIGN_CENTER, 0, 54);
     add_channel_nav(screen, PAGE_CLOCK);
 }
 
-static void render_weather_forecast(lv_obj_t *screen, const app_settings_t *settings) {
+static void render_weather_forecast(lv_obj_t *screen) {
     weather_snapshot_t weather = {0};
     const bool available = network_get_weather(&weather);
-    const char *city = settings != NULL && settings->city[0] ? settings->city : "Choose a city";
-    lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_16, COLOR_SECONDARY);
-    lv_obj_align(city_label, LV_ALIGN_TOP_MID, 0, 25);
     lv_obj_t *heading = label_new(screen, "3-DAY FORECAST", &lv_font_montserrat_12, COLOR_TEAL);
-    lv_obj_align(heading, LV_ALIGN_TOP_MID, 0, 52);
+    lv_obj_align(heading, LV_ALIGN_TOP_MID, 0, 28);
     static const char *days[] = { "TODAY", "TOMORROW", "DAY 3" };
     for (int i = 0; i < 3; i++) {
         const int y = 78 + i * 34;
@@ -150,17 +147,14 @@ static void render_weather_forecast(lv_obj_t *screen, const app_settings_t *sett
 
 static void render_weather(lv_obj_t *screen, const navigation_t *navigation, const app_settings_t *settings) {
     if (navigation->weather_forecast) {
-        render_weather_forecast(screen, settings);
+        render_weather_forecast(screen);
         return;
     }
-    const char *city = settings != NULL && settings->city[0] ? settings->city : "Choose a city";
     weather_snapshot_t weather = {0};
     const bool available = network_get_weather(&weather);
-    lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_16, COLOR_SECONDARY);
-    lv_obj_align(city_label, LV_ALIGN_TOP_MID, 0, 25);
     const char *weather_name = !available ? "WAIT" : weather.weather_code <= 3 ? "SUN" : weather.weather_code <= 48 ? "CLOUD" : weather.weather_code <= 67 ? "RAIN" : "STORM";
     lv_obj_t *icon = label_new(screen, weather_name, &lv_font_montserrat_16, COLOR_TEAL);
-    lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 55);
+    lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 34);
     char temperature_text[12] = "--°";
     char condition_text[48] = "Set location in local setup";
     char details_text[64] = "Open Settings for city setup";
