@@ -101,21 +101,25 @@ static void render_clock(lv_obj_t *screen) {
 }
 
 static void render_weather_forecast(lv_obj_t *screen, const app_settings_t *settings) {
+    weather_snapshot_t weather = {0};
+    const bool available = network_get_weather(&weather);
     const char *city = settings != NULL && settings->city[0] ? settings->city : "Choose a city";
     lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_16, COLOR_SECONDARY);
     lv_obj_align(city_label, LV_ALIGN_TOP_MID, 0, 25);
     lv_obj_t *heading = label_new(screen, "3-DAY FORECAST", &lv_font_montserrat_12, COLOR_TEAL);
     lv_obj_align(heading, LV_ALIGN_TOP_MID, 0, 52);
     static const char *days[] = { "TODAY", "TOMORROW", "DAY 3" };
-    static const char *temperatures[] = { "31° / 25°", "30° / 24°", "29° / 23°" };
     for (int i = 0; i < 3; i++) {
         const int y = 78 + i * 34;
         panel_new(screen, 24, y, 192, 28, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
         lv_obj_t *day = label_new(screen, days[i], &lv_font_montserrat_12, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
         lv_obj_set_pos(day, 34, y + 8);
-        lv_obj_t *condition = label_new(screen, "SUNNY", &lv_font_montserrat_12, COLOR_TEAL);
+        const char *condition_text = available ? (weather.daily_weather_code[i] <= 3 ? "CLEAR" : weather.daily_weather_code[i] <= 48 ? "CLOUDY" : weather.daily_weather_code[i] <= 67 ? "RAIN" : "STORM") : "--";
+        lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(condition, LV_ALIGN_TOP_MID, 0, y + 8);
-        lv_obj_t *temperature = label_new(screen, settings != NULL && settings->city[0] ? temperatures[i] : "--° / --°", &lv_font_montserrat_12, COLOR_SECONDARY);
+        char temperatures[20] = "--° / --°";
+        if (available) snprintf(temperatures, sizeof(temperatures), "%.0f° / %.0f°", weather.daily_high_c[i], weather.daily_low_c[i]);
+        lv_obj_t *temperature = label_new(screen, temperatures, &lv_font_montserrat_12, COLOR_SECONDARY);
         lv_obj_set_pos(temperature, 150, y + 8);
     }
     lv_obj_t *hint = label_new(screen, "Press for current weather", &lv_font_montserrat_12, COLOR_MUTED);
@@ -129,15 +133,29 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
         return;
     }
     const char *city = settings != NULL && settings->city[0] ? settings->city : "Choose a city";
+    weather_snapshot_t weather = {0};
+    const bool available = network_get_weather(&weather);
     lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_16, COLOR_SECONDARY);
     lv_obj_align(city_label, LV_ALIGN_TOP_MID, 0, 25);
-    lv_obj_t *icon = label_new(screen, "SUN", &lv_font_montserrat_16, COLOR_TEAL);
+    const char *weather_name = !available ? "WAIT" : weather.weather_code <= 3 ? "SUN" : weather.weather_code <= 48 ? "CLOUD" : weather.weather_code <= 67 ? "RAIN" : "STORM";
+    lv_obj_t *icon = label_new(screen, weather_name, &lv_font_montserrat_16, COLOR_TEAL);
     lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 55);
-    lv_obj_t *temperature = label_new(screen, settings != NULL && settings->city[0] ? "28°" : "--°", &lv_font_montserrat_48, COLOR_PRIMARY);
+    char temperature_text[12] = "--°";
+    char condition_text[48] = "Set location in local setup";
+    char details_text[64] = "Open Settings for city setup";
+    if (available) {
+        snprintf(temperature_text, sizeof(temperature_text), "%.0f°", weather.temperature_c);
+        snprintf(condition_text, sizeof(condition_text), "Feels %.0f° · %s", weather.apparent_temperature_c, weather_name);
+        snprintf(details_text, sizeof(details_text), "Humidity %d%% · Wind %.0f km/h\\nH %.0f° · L %.0f°", weather.humidity_percent, weather.wind_speed_kmh, weather.daily_high_c[0], weather.daily_low_c[0]);
+    } else if (settings != NULL && settings->city[0]) {
+        strlcpy(condition_text, network_weather_is_refreshing() ? "Refreshing weather…" : "Weather unavailable; retrying", sizeof(condition_text));
+        strlcpy(details_text, "Open-Meteo · no API key", sizeof(details_text));
+    }
+    lv_obj_t *temperature = label_new(screen, temperature_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(temperature, LV_ALIGN_CENTER, 0, -8);
-    lv_obj_t *condition = label_new(screen, settings != NULL && settings->city[0] ? "Feels 31° · Sunny" : "Set location in local setup", &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_align(condition, LV_ALIGN_CENTER, 0, 30);
-    lv_obj_t *details = label_new(screen, settings != NULL && settings->city[0] ? "Humidity 72% · Wind 8 km/h\nH 31° · L 25°" : "Open Settings for city setup", &lv_font_montserrat_12, COLOR_SECONDARY);
+    lv_obj_t *details = label_new(screen, details_text, &lv_font_montserrat_12, COLOR_SECONDARY);
     lv_obj_set_style_text_align(details, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(details, LV_ALIGN_CENTER, 0, 58);
     lv_obj_t *hint = label_new(screen, "Press for 3-day forecast", &lv_font_montserrat_12, COLOR_MUTED);
@@ -329,7 +347,9 @@ static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 52);
     loading_row(screen, 91, "Wi-Fi", "Connected", COLOR_GREEN);
     loading_row(screen, 120, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing…", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
-    loading_row(screen, 149, "Weather", settings != NULL && settings->city[0] ? "Location ready" : "City not set", settings != NULL && settings->city[0] ? COLOR_GREEN : COLOR_MUTED);
+    weather_snapshot_t weather = {0};
+    const bool weather_ready = network_get_weather(&weather);
+    loading_row(screen, 149, "Weather", weather_ready ? "Loaded" : settings != NULL && settings->city[0] ? "Loading…" : "City not set", weather_ready ? COLOR_GREEN : settings != NULL && settings->city[0] ? COLOR_TEAL : COLOR_MUTED);
     loading_row(screen, 178, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
     lv_obj_t *footer = label_new(screen, sync_finished ? "Opening Clock" : "Opening Clock after time setup", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -24);

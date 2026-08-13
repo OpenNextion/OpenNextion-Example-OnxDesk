@@ -34,7 +34,7 @@ void app_main(void) {
 
     app_settings_t settings;
     ESP_ERROR_CHECK(settings_load(&settings));
-    ESP_ERROR_CHECK(network_init());
+    ESP_ERROR_CHECK(network_init(&settings));
 
     board_display_t display = {0};
     ESP_ERROR_CHECK(board_init(&display));

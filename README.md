@@ -25,7 +25,7 @@ On the Weather channel, a short press switches between current conditions and th
 
 ## Wi-Fi setup
 
-On a new device (or after a BOOT factory reset), OnxDesk starts the open `OnxDesk-Setup` Wi-Fi network and shows the setup guide on the display. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. The device keeps the setup network available until its next restart and switches to Clock after it receives a station IP address.
+On a new device (or after a BOOT factory reset), OnxDesk starts the open `OnxDesk-Setup` Wi-Fi network and shows the setup guide on the display. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. Once connected, use the **City, time and weather** section on the same page to search in English, choose the matching city, and save it. This stores the city, coordinates and IANA time zone locally, then calibrates the clock and loads free Open-Meteo weather without an API key. The device keeps the setup network available until its next restart and switches to Clock after the initial time and weather load.
 
 The News home page shows the leading item for World, Business and Technology. Enter the category picker, then a category list. Selecting an item shows a QR code for the original article.
 
@@ -40,7 +40,7 @@ The News home page shows the leading item for World, Business and Technology. En
 
 ## Status
 
-The hardware bring-up and the first UI foundation are in place: GC9A01N SPI initialization, 8 MB PSRAM report, persistent settings, input navigation, and the dark circular LVGL 9 layouts for all six channels. The UI currently uses clearly labelled local placeholder data until Wi-Fi provisioning and the data-service clients are added. The next implementation steps are captive-portal setup, SNTP, and the provider clients.
+The hardware bring-up, provisioning, SNTP time setup, city search and Open-Meteo weather client are in place. Other channel data clients remain staged separately.
 
 ## Data notice
 

@@ -18,7 +18,7 @@ typedef enum {
     ENCODER_SENSITIVITY_HIGH = 2,
 } encoder_sensitivity_t;
 
-typedef struct {
+typedef struct app_settings {
     home_page_t home_page;
     uint8_t brightness_percent;
     uint8_t encoder_step; /* encoder_sensitivity_t; Medium is the factory default */
