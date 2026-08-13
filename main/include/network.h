@@ -7,4 +7,5 @@
 esp_err_t network_init(void);
 bool network_is_connected(void);
 bool network_is_connecting(void);
+bool network_connection_failed(void);
 esp_err_t network_factory_reset(void);

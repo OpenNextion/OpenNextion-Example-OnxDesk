@@ -37,6 +37,8 @@ void app_main(void) {
             if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
                 navigation.page = PAGE_CLOCK;
                 app_ui_render(&navigation, &settings);
+            } else if (navigation.page == PAGE_PROVISIONING) {
+                app_ui_render(&navigation, &settings);
             }
             if (navigation.page == PAGE_CLOCK) app_ui_render(&navigation, &settings);
             continue;

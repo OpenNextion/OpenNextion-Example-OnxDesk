@@ -263,7 +263,8 @@ static void render_settings(lv_obj_t *screen, const app_settings_t *settings) {
 
 static void render_provisioning(lv_obj_t *screen) {
     add_header(screen, "WI-FI SETUP");
-    lv_obj_t *title = label_new(screen, network_is_connecting() ? "Connecting to Wi-Fi" : "Connect your phone", &lv_font_montserrat_20, COLOR_PRIMARY);
+    const bool failed = network_connection_failed();
+    lv_obj_t *title = label_new(screen, failed ? "Connection failed" : network_is_connecting() ? "Connecting to Wi-Fi" : "Connect your phone", &lv_font_montserrat_20, failed ? COLOR_RED : COLOR_PRIMARY);
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -44);
     lv_obj_t *network = label_new(screen, "OnxDesk-Setup", &lv_font_montserrat_20, COLOR_TEAL);
     lv_obj_align(network, LV_ALIGN_CENTER, 0, -13);
@@ -272,7 +273,7 @@ static void render_provisioning(lv_obj_t *screen) {
     lv_obj_align(hint, LV_ALIGN_CENTER, 0, 20);
     lv_obj_t *address = label_new(screen, "192.168.4.1", &lv_font_montserrat_20, COLOR_PRIMARY);
     lv_obj_align(address, LV_ALIGN_CENTER, 0, 55);
-    lv_obj_t *footer = label_new(screen, network_is_connecting() ? "Trying saved Wi-Fi settings…" : "A setup browser may open automatically", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_t *footer = label_new(screen, failed ? "Check password and try again" : network_is_connecting() ? "Testing Wi-Fi connection…" : "A setup browser may open automatically", &lv_font_montserrat_12, failed ? COLOR_RED : COLOR_MUTED);
     lv_obj_set_style_text_align(footer, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -22);
 }

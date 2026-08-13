@@ -19,9 +19,13 @@
 #define MAX_CONNECT_RETRIES 5
 
 static const char *TAG = "network";
-static bool connected;
-static bool connect_requested;
+static volatile bool connected;
+static volatile bool connect_requested;
+static volatile bool connection_failed;
+static volatile bool configure_after_disconnect;
 static unsigned int connection_retries;
+static wifi_config_t pending_station_config;
+static bool pending_station_config_valid;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
 
 typedef struct __attribute__((packed)) {
@@ -51,8 +55,8 @@ static const char setup_page[] =
     "<form method=post action=/configure><label>Nearby Wi-Fi networks</label><select id=ssid name=ssid required><option selected disabled value=''>Scanning nearby networks…</option></select><button type=button id=refresh>Refresh network list</button>"
     "<div id=manual hidden><label>Other Wi-Fi name (SSID)</label><input id=manual_ssid name=manual_ssid maxlength=32 autocomplete=off disabled></div>"
     "<label>Password</label><input name=password type=password maxlength=64 autocomplete=current-password>"
-    "<button type=submit>Connect</button></form><small>After a successful connection, OnxDesk will open its Clock screen. This setup network remains available until the device is restarted.</small>"
-    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;scan();</script>"
+    "<button id=connect type=submit>Connect</button></form><p id=status><small>Select a network, then test the connection.</small></p><small>After a successful connection, OnxDesk will open its Clock screen. This setup network remains available until the device is restarted.</small>"
+    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid'),f=document.querySelector('form'),b=document.querySelector('#connect'),z=document.querySelector('#status');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}function poll(){fetch('/status').then(r=>r.text()).then(t=>{if(t==='connected'){z.textContent='Connected. OnxDesk is opening its Clock screen.';b.disabled=true}else if(t==='failed'){z.textContent='Connection failed. Check the password and try again.';b.disabled=false}else setTimeout(poll,1000)}).catch(()=>{z.textContent='Could not check connection status.';b.disabled=false})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;f.onsubmit=e=>{e.preventDefault();b.disabled=true;z.textContent='Connecting…';fetch('/configure',{method:'POST',body:new URLSearchParams(new FormData(f))}).then(r=>{if(!r.ok)throw 0;poll()}).catch(()=>{z.textContent='Could not start connection.';b.disabled=false})};scan();</script>"
     "</body></html>";
 
 static void url_decode(char *text) {
@@ -175,6 +179,25 @@ static esp_err_t scan_get_handler(httpd_req_t *req) {
     return httpd_resp_send_chunk(req, NULL, 0);
 }
 
+static esp_err_t status_get_handler(httpd_req_t *req) {
+    httpd_resp_set_type(req, "text/plain");
+    if (connected) return httpd_resp_sendstr(req, "connected");
+    if (connection_failed) return httpd_resp_sendstr(req, "failed");
+    return httpd_resp_sendstr(req, connect_requested ? "connecting" : "ready");
+}
+
+static esp_err_t start_pending_station_connection(void) {
+    if (!pending_station_config_valid) return ESP_ERR_INVALID_STATE;
+    esp_err_t error = esp_wifi_set_config(WIFI_IF_STA, &pending_station_config);
+    if (error == ESP_OK) error = esp_wifi_connect();
+    if (error != ESP_OK) {
+        connect_requested = false;
+        connection_failed = true;
+        ESP_LOGE(TAG, "could not start Wi-Fi connection: %s", esp_err_to_name(error));
+    }
+    return error;
+}
+
 static esp_err_t configure_post_handler(httpd_req_t *req) {
     if (req->content_len <= 0 || req->content_len >= MAX_FORM_BODY) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid Wi-Fi form");
@@ -209,26 +232,33 @@ static esp_err_t configure_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    wifi_config_t station_config = {0};
-    strlcpy((char *)station_config.sta.ssid, ssid, sizeof(station_config.sta.ssid));
-    strlcpy((char *)station_config.sta.password, password, sizeof(station_config.sta.password));
-    station_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
-    station_config.sta.failure_retry_cnt = MAX_CONNECT_RETRIES;
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
-    if (esp_wifi_set_config(WIFI_IF_STA, &station_config) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not save Wi-Fi settings");
-        return ESP_FAIL;
+    pending_station_config = (wifi_config_t){0};
+    strlcpy((char *)pending_station_config.sta.ssid, ssid, sizeof(pending_station_config.sta.ssid));
+    strlcpy((char *)pending_station_config.sta.password, password, sizeof(pending_station_config.sta.password));
+    pending_station_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+    pending_station_config.sta.failure_retry_cnt = 0;
+    pending_station_config_valid = true;
+    const bool was_connecting = connected || connect_requested;
+    connect_requested = false;
+    connection_failed = false;
+    configure_after_disconnect = false;
+    if (was_connecting) {
+        if (esp_wifi_disconnect() == ESP_OK) {
+            configure_after_disconnect = true;
+        }
     }
     connection_retries = 0;
     connect_requested = true;
     connected = false;
-    esp_err_t error = esp_wifi_connect();
-    if (error != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not start Wi-Fi connection");
-        return error;
+    if (!configure_after_disconnect) {
+        esp_err_t error = start_pending_station_connection();
+        if (error != ESP_OK) {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not start Wi-Fi connection");
+            return error;
+        }
     }
-    httpd_resp_set_type(req, "text/html");
-    return httpd_resp_sendstr(req, "<meta http-equiv=refresh content='4;url=/'><body style='font-family:system-ui;background:#0d0d1a;color:white;padding:2rem'>Connecting OnxDesk to Wi-Fi…</body>");
+    httpd_resp_set_type(req, "text/plain");
+    return httpd_resp_sendstr(req, "connecting");
 }
 
 static esp_err_t redirect_handler(httpd_req_t *req, httpd_err_code_t error) {
@@ -245,9 +275,11 @@ static void start_setup_server(void) {
     ESP_ERROR_CHECK(httpd_start(&server, &config));
     const httpd_uri_t root = { .uri = "/", .method = HTTP_GET, .handler = root_get_handler };
     const httpd_uri_t scan = { .uri = "/scan", .method = HTTP_GET, .handler = scan_get_handler };
+    const httpd_uri_t status = { .uri = "/status", .method = HTTP_GET, .handler = status_get_handler };
     const httpd_uri_t configure = { .uri = "/configure", .method = HTTP_POST, .handler = configure_post_handler };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &root));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &scan));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &status));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &configure));
     ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect_handler));
 }
@@ -257,12 +289,23 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
     (void)data;
     if (base == WIFI_EVENT && event == WIFI_EVENT_STA_DISCONNECTED) {
         connected = false;
+        if (configure_after_disconnect) {
+            configure_after_disconnect = false;
+            ESP_ERROR_CHECK_WITHOUT_ABORT(start_pending_station_connection());
+            return;
+        }
         if (connect_requested && connection_retries++ < MAX_CONNECT_RETRIES) {
             ESP_LOGW(TAG, "Wi-Fi connection retry %u/%u", connection_retries, MAX_CONNECT_RETRIES);
-            esp_wifi_connect();
+            ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_connect());
+        } else if (connect_requested) {
+            connect_requested = false;
+            connection_failed = true;
+            ESP_LOGE(TAG, "Wi-Fi connection failed after %u retries", MAX_CONNECT_RETRIES);
         }
     } else if (base == IP_EVENT && event == IP_EVENT_STA_GOT_IP) {
         connected = true;
+        connect_requested = false;
+        connection_failed = false;
         connection_retries = 0;
         ESP_LOGI(TAG, "Wi-Fi connected; OnxDesk data services may start");
     }
@@ -320,4 +363,5 @@ esp_err_t network_init(void) {
 
 bool network_is_connected(void) { return connected; }
 bool network_is_connecting(void) { return connect_requested && !connected; }
+bool network_connection_failed(void) { return connection_failed; }
 esp_err_t network_factory_reset(void) { return esp_wifi_restore(); }
