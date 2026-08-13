@@ -10,6 +10,8 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include "lwip/inet.h"
+#include "lwip/sockets.h"
 
 #define SETUP_AP_SSID "OnxDesk-Setup"
 #define SETUP_PAGE_IP "192.168.4.1"
@@ -22,17 +24,34 @@ static bool connect_requested;
 static unsigned int connection_retries;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
 
+typedef struct __attribute__((packed)) {
+    uint16_t id;
+    uint16_t flags;
+    uint16_t question_count;
+    uint16_t answer_count;
+    uint16_t authority_count;
+    uint16_t additional_count;
+} dns_header_t;
+
+typedef struct __attribute__((packed)) {
+    uint16_t name_pointer;
+    uint16_t type;
+    uint16_t class;
+    uint32_t ttl;
+    uint16_t address_length;
+    uint32_t address;
+} dns_answer_t;
+
 static const char setup_page[] =
     "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'>"
     "<title>OnxDesk setup</title><style>body{max-width:34rem;margin:2rem auto;padding:0 1rem;background:#0d0d1a;color:#fff;font:16px system-ui}"
-    "h1{color:#5dcaa5}input,select,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}"
-    "input,select{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
+    "h1{color:#5dcaa5}input,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}"
+    "input{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
     "<h1>OnxDesk Wi-Fi setup</h1><p>Choose your 2.4 GHz Wi-Fi network, then enter its password.</p>"
-    "<form method=post action=/configure><label>Nearby networks</label><select id=net><option>Scanning…</option></select>"
-    "<label>Wi-Fi name (SSID)</label><input id=ssid name=ssid maxlength=32 required autocomplete=off>"
+    "<form method=post action=/configure><label>Wi-Fi name (SSID)</label><input id=ssid name=ssid list=networks maxlength=32 required autocomplete=off placeholder='Scanning nearby networks…'><datalist id=networks></datalist>"
     "<label>Password</label><input name=password type=password maxlength=64 autocomplete=current-password>"
     "<button type=submit>Connect</button></form><small>After a successful connection, OnxDesk will open its Clock screen. This setup network remains available until the device is restarted.</small>"
-    "<script>fetch('/scan').then(r=>r.text()).then(t=>{let s=document.querySelector('#net');s.textContent='';t.trim().split('\\n').filter(Boolean).forEach(n=>{let o=document.createElement('option');o.textContent=o.value=n;s.append(o)});s.onchange=()=>document.querySelector('#ssid').value=s.value}).catch(()=>{document.querySelector('#net').textContent='Scan unavailable'});</script>"
+    "<script>fetch('/scan').then(r=>r.text()).then(t=>{let d=document.querySelector('#networks');t.trim().split('\\n').filter(Boolean).forEach(n=>{let o=document.createElement('option');o.value=n;d.append(o)});document.querySelector('#ssid').placeholder='Select or enter Wi-Fi name'}).catch(()=>{document.querySelector('#ssid').placeholder='Enter Wi-Fi name manually'});</script>"
     "</body></html>";
 
 static void url_decode(char *text) {
@@ -57,19 +76,77 @@ static void url_decode(char *text) {
     *write = '\0';
 }
 
-static bool form_value(char *body, const char *name, char *output, size_t output_size) {
+static bool form_value(const char *body, const char *name, char *output, size_t output_size) {
     const size_t name_len = strlen(name);
-    for (char *field = body; field != NULL;) {
-        char *next = strchr(field, '&');
-        if (next != NULL) *next = '\0';
-        if (strncmp(field, name, name_len) == 0 && field[name_len] == '=') {
-            strlcpy(output, field + name_len + 1, output_size);
+    for (const char *field = body; field != NULL;) {
+        const char *next = strchr(field, '&');
+        const size_t field_len = next == NULL ? strlen(field) : (size_t)(next - field);
+        if (field_len > name_len && strncmp(field, name, name_len) == 0 && field[name_len] == '=') {
+            const char *value = field + name_len + 1;
+            const size_t value_len = field_len - name_len - 1;
+            const size_t copy_len = value_len < output_size - 1 ? value_len : output_size - 1;
+            memcpy(output, value, copy_len);
+            output[copy_len] = '\0';
             url_decode(output);
             return true;
         }
         field = next == NULL ? NULL : next + 1;
     }
     return false;
+}
+
+static int build_dns_reply(const uint8_t *request, size_t request_len, uint8_t *reply, size_t reply_size) {
+    if (request_len < sizeof(dns_header_t) + 5 || reply_size < request_len + sizeof(dns_answer_t)) return -1;
+    const dns_header_t *request_header = (const dns_header_t *)request;
+    if (ntohs(request_header->question_count) != 1) return -1;
+    size_t question_len = sizeof(dns_header_t);
+    while (question_len < request_len && request[question_len] != 0) {
+        const size_t label_len = request[question_len];
+        if (label_len == 0 || question_len + label_len >= request_len) return -1;
+        question_len += label_len + 1;
+    }
+    if (question_len + 5 > request_len) return -1;
+    question_len += 5; /* root label plus query type and class */
+    memcpy(reply, request, question_len);
+    dns_header_t *response_header = (dns_header_t *)reply;
+    response_header->flags = htons(0x8080 | (ntohs(request_header->flags) & 0x0100));
+    response_header->answer_count = htons(1);
+    response_header->authority_count = 0;
+    response_header->additional_count = 0;
+    dns_answer_t *answer = (dns_answer_t *)(reply + question_len);
+    *answer = (dns_answer_t){
+        .name_pointer = htons(0xC00C), .type = htons(1), .class = htons(1),
+        .ttl = htonl(60), .address_length = htons(4), .address = inet_addr(SETUP_PAGE_IP),
+    };
+    return (int)(question_len + sizeof(*answer));
+}
+
+static void dns_redirect_task(void *argument) {
+    (void)argument;
+    const int socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (socket_fd < 0) {
+        ESP_LOGE(TAG, "cannot create captive DNS socket");
+        vTaskDelete(NULL);
+        return;
+    }
+    struct sockaddr_in address = { .sin_family = AF_INET, .sin_port = htons(53), .sin_addr.s_addr = htonl(INADDR_ANY) };
+    if (bind(socket_fd, (struct sockaddr *)&address, sizeof(address)) != 0) {
+        ESP_LOGE(TAG, "cannot bind captive DNS socket");
+        close(socket_fd);
+        vTaskDelete(NULL);
+        return;
+    }
+    ESP_LOGI(TAG, "captive DNS redirect listening on UDP 53");
+    while (true) {
+        uint8_t request[256];
+        uint8_t reply[300];
+        struct sockaddr_storage client = {0};
+        socklen_t client_len = sizeof(client);
+        const int request_len = recvfrom(socket_fd, request, sizeof(request), 0, (struct sockaddr *)&client, &client_len);
+        if (request_len <= 0) continue;
+        const int reply_len = build_dns_reply(request, (size_t)request_len, reply, sizeof(reply));
+        if (reply_len > 0) sendto(socket_fd, reply, reply_len, 0, (struct sockaddr *)&client, client_len);
+    }
 }
 
 static esp_err_t root_get_handler(httpd_req_t *req) {
@@ -103,15 +180,22 @@ static esp_err_t configure_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
     char body[MAX_FORM_BODY] = {0};
-    int received = httpd_req_recv(req, body, req->content_len);
-    if (received <= 0) return ESP_FAIL;
+    int received = 0;
+    while (received < req->content_len) {
+        const int chunk = httpd_req_recv(req, body + received, req->content_len - received);
+        if (chunk <= 0) return ESP_FAIL;
+        received += chunk;
+    }
     body[received] = '\0';
 
     char ssid[sizeof(((wifi_sta_config_t *)0)->ssid)] = {0};
     char password[sizeof(((wifi_sta_config_t *)0)->password)] = {0};
-    if (!form_value(body, "ssid", ssid, sizeof(ssid)) || ssid[0] == '\0' ||
-        !form_value(body, "password", password, sizeof(password))) {
+    if (!form_value(body, "ssid", ssid, sizeof(ssid)) || ssid[0] == '\0') {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Wi-Fi name is required");
+        return ESP_FAIL;
+    }
+    if (!form_value(body, "password", password, sizeof(password))) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid Wi-Fi form");
         return ESP_FAIL;
     }
 
@@ -209,6 +293,10 @@ esp_err_t network_init(void) {
     start_softap();
     advertise_captive_portal(ap_netif);
     start_setup_server();
+    if (xTaskCreate(dns_redirect_task, "captive_dns", 4096, NULL, 5, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "failed to start captive DNS redirect");
+        return ESP_ERR_NO_MEM;
+    }
 
     wifi_config_t saved_station = {0};
     ESP_RETURN_ON_ERROR(esp_wifi_get_config(WIFI_IF_STA, &saved_station), TAG, "read saved Wi-Fi settings");
