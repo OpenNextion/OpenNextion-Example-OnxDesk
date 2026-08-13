@@ -10,8 +10,7 @@
 
 #define DISPLAY_WIDTH 240
 #define DISPLAY_HEIGHT 240
-#define DISPLAY_BUFFER_PIXELS (DISPLAY_WIDTH * DISPLAY_HEIGHT)
-#define DISPLAY_TRANSFER_PIXELS (DISPLAY_WIDTH * 20)
+#define DISPLAY_DRAW_BUFFER_PIXELS (DISPLAY_WIDTH * 20)
 
 #define COLOR_BG       0x0D0D1A
 #define COLOR_SURFACE  0x1A1A2E
@@ -439,10 +438,17 @@ esp_err_t app_ui_init(const board_display_t *display) {
     ESP_RETURN_ON_ERROR(lvgl_port_init(&port_config), "ui", "initialize LVGL port");
     const lvgl_port_display_cfg_t display_config = {
         .io_handle = display->io, .panel_handle = display->panel,
-        .buffer_size = DISPLAY_BUFFER_PIXELS, .trans_size = DISPLAY_TRANSFER_PIXELS,
+        /*
+         * The SPI LCD driver cannot directly transmit our PSRAM canvas unless
+         * it allocates a large internal-RAM bounce buffer for every flush.
+         * Under Wi-Fi and TLS pressure that allocation can fail, leaving LVGL
+         * waiting for a completion callback that will never arrive.  A 20-line
+         * DMA-capable draw buffer sends directly and is ample for this 240px UI.
+         */
+        .buffer_size = DISPLAY_DRAW_BUFFER_PIXELS,
         .hres = DISPLAY_WIDTH, .vres = DISPLAY_HEIGHT, .color_format = LV_COLOR_FORMAT_RGB565,
         .rotation = { .swap_xy = true, .mirror_x = false, .mirror_y = false },
-        .flags = { .buff_spiram = true, .swap_bytes = true },
+        .flags = { .buff_dma = true, .swap_bytes = true },
     };
     lvgl_display = lvgl_port_add_disp(&display_config);
     return lvgl_display == NULL ? ESP_ERR_NO_MEM : ESP_OK;
