@@ -56,7 +56,7 @@ void app_main(void) {
             if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
                 navigation.page = settings.city[0] == '\0' ? PAGE_CITY_SETUP : PAGE_LOADING;
                 app_ui_render(&navigation, &settings);
-            } else if (navigation.page == PAGE_CITY_SETUP && settings.city[0] != '\0') {
+            } else if (navigation.page == PAGE_CITY_SETUP && !navigation.city_setup_from_settings && settings.city[0] != '\0') {
                 weather_snapshot_t weather = {0};
                 if (network_get_weather(&weather)) navigation.page = PAGE_CLOCK;
                 app_ui_render(&navigation, &settings);

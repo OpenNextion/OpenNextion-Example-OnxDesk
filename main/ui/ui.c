@@ -320,8 +320,11 @@ static void render_settings_menu(lv_obj_t *screen, const navigation_t *navigatio
             lv_obj_set_pos(value, 157, y + 4);
         }
     }
-    const bool opens_config = navigation->settings_item == SETTINGS_WIFI || navigation->settings_item == SETTINGS_CITY || navigation->settings_item == SETTINGS_FINNHUB;
-    lv_obj_t *hint = label_new(screen, navigation->settings_item == SETTINGS_SENSITIVITY ? "Press: Low · Medium · High" : opens_config ? "Press: open local setup URL" : "Rotate · Press · Long press back", &lv_font_montserrat_12, COLOR_MUTED);
+    const bool opens_config = navigation->settings_item == SETTINGS_WIFI || navigation->settings_item == SETTINGS_FINNHUB;
+    const char *hint_text = navigation->settings_item == SETTINGS_SENSITIVITY ? "Press: Low · Medium · High" :
+                            navigation->settings_item == SETTINGS_CITY ? "Press: change city" :
+                            opens_config ? "Press: open local setup URL" : "Rotate · Press · Long press back";
+    lv_obj_t *hint = label_new(screen, hint_text, &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_SETTINGS);
 }
