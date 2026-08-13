@@ -490,6 +490,13 @@ static esp_err_t redirect_handler(httpd_req_t *req, httpd_err_code_t error) {
 
 static void start_setup_server(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    /*
+     * City search performs an HTTPS request to Open-Meteo in this server's
+     * handler.  The ESP-IDF HTTP server default (4 KiB) is not enough for the
+     * TLS/mbedTLS call stack and can corrupt the task stack before the request
+     * returns.  Keep the portal responsive while allowing that request to run.
+     */
+    config.stack_size = 12288;
     config.lru_purge_enable = true;
     httpd_handle_t server = NULL;
     ESP_ERROR_CHECK(httpd_start(&server, &config));
