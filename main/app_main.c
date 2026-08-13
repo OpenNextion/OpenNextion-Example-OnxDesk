@@ -53,8 +53,14 @@ void app_main(void) {
     input_event_t event;
     while (true) {
         if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
+            const bool city_was_saved = network_take_city_saved();
             if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
                 navigation.page = settings.city[0] == '\0' ? PAGE_CITY_SETUP : PAGE_LOADING;
+                app_ui_render(&navigation, &settings);
+            } else if (navigation.page == PAGE_CITY_SETUP && navigation.city_setup_from_settings && city_was_saved) {
+                navigation.city_setup_from_settings = false;
+                navigation.city_setup_show_qr = false;
+                navigation.page = PAGE_SETTINGS;
                 app_ui_render(&navigation, &settings);
             } else if (navigation.page == PAGE_CITY_SETUP && !navigation.city_setup_from_settings && settings.city[0] != '\0') {
                 weather_snapshot_t weather = {0};

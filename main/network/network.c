@@ -30,6 +30,7 @@ static volatile bool initial_sync_started;
 static volatile bool initial_sync_completed;
 static volatile bool time_synced;
 static volatile bool weather_refreshing;
+static volatile bool city_saved;
 static volatile bool captive_dns_active;
 static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
@@ -76,6 +77,12 @@ void network_request_weather_refresh(void) {
         weather_refreshing = false;
         ESP_LOGE(TAG, "failed to start weather refresh task");
     }
+}
+
+bool network_take_city_saved(void) {
+    const bool saved = city_saved;
+    city_saved = false;
+    return saved;
 }
 
 static void initial_sync_task(void *argument) {
@@ -448,6 +455,7 @@ static esp_err_t city_save_post_handler(httpd_req_t *req) {
         return error;
     }
     latest_weather.valid = false;
+    city_saved = true;
     network_request_weather_refresh();
     httpd_resp_set_type(req, "text/plain");
     return httpd_resp_sendstr(req, "City saved. Local time and weather are refreshing.");
