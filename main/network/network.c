@@ -30,6 +30,7 @@ static volatile bool initial_sync_started;
 static volatile bool initial_sync_completed;
 static volatile bool time_synced;
 static volatile bool weather_refreshing;
+static volatile bool captive_dns_active;
 static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
 static bool pending_station_config_valid;
@@ -228,8 +229,10 @@ static void dns_redirect_task(void *argument) {
         vTaskDelete(NULL);
         return;
     }
+    struct timeval receive_timeout = { .tv_sec = 1, .tv_usec = 0 };
+    setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout));
     ESP_LOGI(TAG, "captive DNS redirect listening on UDP 53");
-    while (true) {
+    while (captive_dns_active) {
         uint8_t request[256];
         uint8_t reply[300];
         struct sockaddr_storage client = {0};
@@ -239,6 +242,9 @@ static void dns_redirect_task(void *argument) {
         const int reply_len = build_dns_reply(request, (size_t)request_len, reply, sizeof(reply));
         if (reply_len > 0) sendto(socket_fd, reply, reply_len, 0, (struct sockaddr *)&client, client_len);
     }
+    close(socket_fd);
+    ESP_LOGI(TAG, "captive DNS redirect stopped after station connection");
+    vTaskDelete(NULL);
 }
 
 static esp_err_t root_get_handler(httpd_req_t *req) {
@@ -528,6 +534,7 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
         const ip_event_got_ip_t *got_ip = data;
         if (got_ip != NULL) ip4addr_ntoa_r((const ip4_addr_t *)&got_ip->ip_info.ip, station_ip, sizeof(station_ip));
         connected = true;
+        captive_dns_active = false;
         connect_requested = false;
         connection_failed = false;
         connection_retries = 0;
@@ -574,6 +581,7 @@ esp_err_t network_init(app_settings_t *settings) {
     start_softap();
     advertise_captive_portal(ap_netif);
     start_setup_server();
+    captive_dns_active = true;
     if (xTaskCreate(dns_redirect_task, "captive_dns", 4096, NULL, 5, NULL) != pdPASS) {
         ESP_LOGE(TAG, "failed to start captive DNS redirect");
         return ESP_ERR_NO_MEM;
