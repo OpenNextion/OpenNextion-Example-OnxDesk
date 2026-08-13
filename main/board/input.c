@@ -5,6 +5,7 @@
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/task.h"
 
 #define ENCODER_A_GPIO GPIO_NUM_48

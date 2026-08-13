@@ -25,7 +25,9 @@ On the Weather channel, a short press switches between current conditions and th
 
 ## Wi-Fi setup
 
-On a new device (or after a BOOT factory reset), OnxDesk starts the open `OnxDesk-Setup` Wi-Fi network and shows the setup guide on the display. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. Once connected, use the **City, time and weather** section on the same page to search in English, choose the matching city, and save it. This stores the city, coordinates and IANA time zone locally, then calibrates the clock and loads free Open-Meteo weather without an API key. The device keeps the setup network available until its next restart and switches to Clock after the initial time and weather load.
+On a new device (or after a BOOT factory reset), OnxDesk starts the open `OnxDesk-Setup` Wi-Fi network and shows the setup guide on the display. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. Once connected, use the **City, time and weather** section on the same page to search in English, choose the matching city, and save it. This stores the city, coordinates and IANA time zone locally, then calibrates the clock and loads free Open-Meteo weather without an API key.
+
+After provisioning, the same settings centre remains available on the device's LAN address while it is powered on. OnxDesk displays that `http://…/` address when you choose **WiFi**, **City**, or **Finnhub Key** in Settings. Connect the phone to the same Wi-Fi, open the shown URL, then update the city, Wi-Fi credentials, or Finnhub API key. The API key is saved only in device NVS and is never shown again.
 
 The News home page shows the leading item for World, Business and Technology. Enter the category picker, then a category list. Selecting an item shows a QR code for the original article.
 

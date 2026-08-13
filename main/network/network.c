@@ -35,6 +35,7 @@ static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
 static bool pending_station_config_valid;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
+static char station_ip[16];
 static app_settings_t *active_settings;
 static weather_snapshot_t latest_weather;
 
@@ -136,8 +137,9 @@ static const char setup_page[] =
     "<div id=manual hidden><label>Other Wi-Fi name (SSID)</label><input id=manual_ssid name=manual_ssid maxlength=32 autocomplete=off disabled></div>"
     "<label>Password</label><input name=password type=password maxlength=64 autocomplete=current-password>"
     "<button id=connect type=submit>Connect</button></form><p id=status><small>Select a network, then test the connection.</small></p>"
-    "<hr><h2>City, time and weather</h2><p><small>After Wi-Fi connects, search in English (for example: London or New York).</small></p><label>City</label><input id=city_query maxlength=63 placeholder='Search city' autocomplete=off><button type=button id=city_search>Search cities</button><select id=city_results hidden></select><button type=button id=city_save hidden>Use this city</button><p id=city_status><small>City not configured.</small></p><small>Saving a city sets its IANA time zone and fetches weather from Open-Meteo. This setup network remains available until the device is restarted.</small>"
-    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid'),f=document.querySelector('form'),b=document.querySelector('#connect'),z=document.querySelector('#status'),q=document.querySelector('#city_query'),r=document.querySelector('#city_results'),cs=document.querySelector('#city_search'),sv=document.querySelector('#city_save'),cz=document.querySelector('#city_status');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}function poll(){fetch('/status').then(r=>r.text()).then(t=>{if(t==='connected'){z.textContent='Connected. You can now search for your city.';b.disabled=true}else if(t==='failed'){z.textContent='Connection failed. Check the password and try again.';b.disabled=false}else setTimeout(poll,1000)}).catch(()=>{z.textContent='Could not check connection status.';b.disabled=false})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;f.onsubmit=e=>{e.preventDefault();b.disabled=true;z.textContent='Connecting…';fetch('/configure',{method:'POST',body:new URLSearchParams(new FormData(f))}).then(x=>{if(!x.ok)throw 0;poll()}).catch(()=>{z.textContent='Could not start connection.';b.disabled=false})};cs.onclick=()=>{let city=q.value.trim();if(!city){cz.textContent='Enter a city name.';return}cs.disabled=true;cz.textContent='Searching…';fetch('/city-search?query='+encodeURIComponent(city)).then(x=>x.ok?x.json():Promise.reject()).then(items=>{r.textContent='';items.forEach(x=>{let o=document.createElement('option');o.textContent=x.name+' · '+x.timezone;o.value=JSON.stringify(x);r.append(o)});r.hidden=!items.length;sv.hidden=!items.length;cz.textContent=items.length?'Choose the matching city.':'No matching city found.'}).catch(()=>cz.textContent='Search unavailable. Connect Wi-Fi first.').finally(()=>cs.disabled=false)};sv.onclick=()=>{if(!r.value)return;let x=JSON.parse(r.value);sv.disabled=true;cz.textContent='Saving city and refreshing weather…';fetch('/city-save',{method:'POST',body:new URLSearchParams(x)}).then(y=>y.ok?y.text():Promise.reject()).then(t=>cz.textContent=t).catch(()=>cz.textContent='Could not save city.').finally(()=>sv.disabled=false)};scan();</script>"
+    "<hr><h2>City, time and weather</h2><p><small>After Wi-Fi connects, search in English (for example: London or New York).</small></p><label>City</label><input id=city_query maxlength=63 placeholder='Search city' autocomplete=off><button type=button id=city_search>Search cities</button><select id=city_results hidden></select><button type=button id=city_save hidden>Use this city</button><p id=city_status><small>City not configured.</small></p>"
+    "<hr><h2>Market data</h2><p><small>Finnhub key is optional and stays only on this device.</small></p><label>Finnhub API key</label><input id=market_key type=password maxlength=95 autocomplete=off placeholder='Paste your API key'><button type=button id=market_save>Save Finnhub key</button><p id=market_status><small>Get a key at <a href=https://finnhub.io/register>finnhub.io/register</a>.</small></p><small>Saving a city sets its IANA time zone and fetches weather from Open-Meteo. This page stays available at the device's LAN IP while OnxDesk is powered on.</small>"
+    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid'),f=document.querySelector('form'),b=document.querySelector('#connect'),z=document.querySelector('#status'),q=document.querySelector('#city_query'),r=document.querySelector('#city_results'),cs=document.querySelector('#city_search'),sv=document.querySelector('#city_save'),cz=document.querySelector('#city_status'),mk=document.querySelector('#market_key'),ms=document.querySelector('#market_save'),mz=document.querySelector('#market_status');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}function poll(){fetch('/status').then(r=>r.text()).then(t=>{if(t==='connected'){z.textContent='Connected. You can now search for your city.';b.disabled=true}else if(t==='failed'){z.textContent='Connection failed. Check the password and try again.';b.disabled=false}else setTimeout(poll,1000)}).catch(()=>{z.textContent='Could not check connection status.';b.disabled=false})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;f.onsubmit=e=>{e.preventDefault();b.disabled=true;z.textContent='Connecting…';fetch('/configure',{method:'POST',body:new URLSearchParams(new FormData(f))}).then(x=>{if(!x.ok)throw 0;poll()}).catch(()=>{z.textContent='Could not start connection.';b.disabled=false})};cs.onclick=()=>{let city=q.value.trim();if(!city){cz.textContent='Enter a city name.';return}cs.disabled=true;cz.textContent='Searching…';fetch('/city-search?query='+encodeURIComponent(city)).then(x=>x.ok?x.json():Promise.reject()).then(items=>{r.textContent='';items.forEach(x=>{let o=document.createElement('option');o.textContent=x.name+' · '+x.timezone;o.value=JSON.stringify(x);r.append(o)});r.hidden=!items.length;sv.hidden=!items.length;cz.textContent=items.length?'Choose the matching city.':'No matching city found.'}).catch(()=>cz.textContent='Search unavailable. Connect Wi-Fi first.').finally(()=>cs.disabled=false)};sv.onclick=()=>{if(!r.value)return;let x=JSON.parse(r.value);sv.disabled=true;cz.textContent='Saving city and refreshing weather…';fetch('/city-save',{method:'POST',body:new URLSearchParams(x)}).then(y=>y.ok?y.text():Promise.reject()).then(t=>cz.textContent=t).catch(()=>cz.textContent='Could not save city.').finally(()=>sv.disabled=false)};ms.onclick=()=>{ms.disabled=true;mz.textContent='Saving key…';fetch('/market-key',{method:'POST',body:new URLSearchParams({api_key:mk.value})}).then(x=>x.ok?x.text():Promise.reject()).then(t=>{mk.value='';mz.textContent=t}).catch(()=>mz.textContent='Could not save key.').finally(()=>ms.disabled=false)};scan();</script>"
     "</body></html>";
 
 static void url_decode(char *text) {
@@ -432,6 +434,34 @@ static esp_err_t city_save_post_handler(httpd_req_t *req) {
     return httpd_resp_sendstr(req, "City saved. Local time and weather are refreshing.");
 }
 
+static esp_err_t market_key_post_handler(httpd_req_t *req) {
+    if (active_settings == NULL || req->content_len <= 0 || req->content_len >= MAX_FORM_BODY) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid market key form");
+        return ESP_FAIL;
+    }
+    char body[MAX_FORM_BODY] = {0};
+    int received = 0;
+    while (received < req->content_len) {
+        const int chunk = httpd_req_recv(req, body + received, req->content_len - received);
+        if (chunk <= 0) return ESP_FAIL;
+        received += chunk;
+    }
+    body[received] = '\0';
+    char key[sizeof(active_settings->finnhub_api_key)] = {0};
+    if (!form_value(body, "api_key", key, sizeof(key))) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Market key is required");
+        return ESP_FAIL;
+    }
+    strlcpy(active_settings->finnhub_api_key, key, sizeof(active_settings->finnhub_api_key));
+    const esp_err_t error = settings_save(active_settings);
+    if (error != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not save market key");
+        return error;
+    }
+    httpd_resp_set_type(req, "text/plain");
+    return httpd_resp_sendstr(req, key[0] == '\0' ? "Finnhub key cleared." : "Finnhub key saved on this device.");
+}
+
 static esp_err_t redirect_handler(httpd_req_t *req, httpd_err_code_t error) {
     (void)error;
     httpd_resp_set_status(req, "302 Found");
@@ -450,12 +480,14 @@ static void start_setup_server(void) {
     const httpd_uri_t configure = { .uri = "/configure", .method = HTTP_POST, .handler = configure_post_handler };
     const httpd_uri_t city_search = { .uri = "/city-search", .method = HTTP_GET, .handler = city_search_get_handler };
     const httpd_uri_t city_save = { .uri = "/city-save", .method = HTTP_POST, .handler = city_save_post_handler };
+    const httpd_uri_t market_key = { .uri = "/market-key", .method = HTTP_POST, .handler = market_key_post_handler };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &root));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &scan));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &status));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &configure));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &city_search));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &city_save));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &market_key));
     ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect_handler));
 }
 
@@ -478,12 +510,14 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
             ESP_LOGE(TAG, "Wi-Fi connection failed after %u retries", MAX_CONNECT_RETRIES);
         }
     } else if (base == IP_EVENT && event == IP_EVENT_STA_GOT_IP) {
+        const ip_event_got_ip_t *got_ip = data;
+        if (got_ip != NULL) ip4addr_ntoa_r((const ip4_addr_t *)&got_ip->ip_info.ip, station_ip, sizeof(station_ip));
         connected = true;
         connect_requested = false;
         connection_failed = false;
         connection_retries = 0;
         start_initial_sync();
-        ESP_LOGI(TAG, "Wi-Fi connected; OnxDesk data services may start");
+        ESP_LOGI(TAG, "Wi-Fi connected; local settings URL: http://%s/", station_ip);
     }
 }
 
@@ -550,6 +584,10 @@ bool network_get_weather(weather_snapshot_t *weather) {
     return true;
 }
 bool network_weather_is_refreshing(void) { return weather_refreshing; }
+bool network_local_url(char *buffer, size_t buffer_size) {
+    if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;
+    return snprintf(buffer, buffer_size, "http://%s/", station_ip) < (int)buffer_size;
+}
 unsigned int network_wifi_signal_level(void) {
     if (!connected) return 0;
     wifi_ap_record_t access_point = {0};

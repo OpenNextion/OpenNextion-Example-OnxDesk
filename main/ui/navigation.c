@@ -45,6 +45,11 @@ void navigation_short_press(navigation_t *navigation) {
     } else if (navigation->page == PAGE_SETTINGS_MENU && navigation->settings_item == SETTINGS_DISPLAY_TEST) {
         navigation->parent_page = PAGE_SETTINGS_MENU;
         navigation->page = PAGE_DISPLAY_TEST;
+    } else if (navigation->page == PAGE_SETTINGS_MENU &&
+               (navigation->settings_item == SETTINGS_WIFI || navigation->settings_item == SETTINGS_CITY ||
+                navigation->settings_item == SETTINGS_FINNHUB)) {
+        navigation->parent_page = PAGE_SETTINGS_MENU;
+        navigation->page = PAGE_CONFIG_URL;
     }
 }
 
@@ -55,12 +60,13 @@ bool navigation_long_press(navigation_t *navigation) {
         case PAGE_NEWS_LIST: navigation->page = PAGE_NEWS_CATEGORY_PICKER; return true;
         case PAGE_NEWS_CATEGORY_PICKER: navigation->page = PAGE_NEWS_HOME; return true;
         case PAGE_DISPLAY_TEST: navigation->page = PAGE_SETTINGS_MENU; return true;
+        case PAGE_CONFIG_URL: navigation->page = PAGE_SETTINGS_MENU; return true;
         case PAGE_SETTINGS_MENU: navigation->page = PAGE_SETTINGS; return true;
         default: return false;
     }
 }
 
 const char *navigation_page_name(app_page_t page) {
-    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test", "Wi-Fi setup", "Loading", "Settings menu" };
+    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test", "Wi-Fi setup", "Loading", "Settings menu", "Local configuration" };
     return page <= PAGE_SETTINGS_MENU ? names[page] : "Unknown";
 }

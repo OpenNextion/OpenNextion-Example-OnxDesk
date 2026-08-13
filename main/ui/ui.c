@@ -310,9 +310,26 @@ static void render_settings_menu(lv_obj_t *screen, const navigation_t *navigatio
             lv_obj_set_pos(value, 157, y + 4);
         }
     }
-    lv_obj_t *hint = label_new(screen, navigation->settings_item == SETTINGS_SENSITIVITY ? "Press: Low · Medium · High" : "Rotate · Press · Long press back", &lv_font_montserrat_12, COLOR_MUTED);
+    const bool opens_config = navigation->settings_item == SETTINGS_WIFI || navigation->settings_item == SETTINGS_CITY || navigation->settings_item == SETTINGS_FINNHUB;
+    lv_obj_t *hint = label_new(screen, navigation->settings_item == SETTINGS_SENSITIVITY ? "Press: Low · Medium · High" : opens_config ? "Press: open local setup URL" : "Rotate · Press · Long press back", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_SETTINGS);
+}
+
+static void render_config_url(lv_obj_t *screen) {
+    char url[40] = "Waiting for Wi-Fi";
+    const bool available = network_local_url(url, sizeof(url));
+    add_header(screen, "LOCAL SETUP");
+    lv_obj_t *title = label_new(screen, available ? "Open this address" : "Connect Wi-Fi first", &lv_font_montserrat_20, COLOR_PRIMARY);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -46);
+    lv_obj_t *address = label_new(screen, url, &lv_font_montserrat_16, COLOR_TEAL);
+    lv_obj_set_style_text_align(address, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(address, LV_ALIGN_CENTER, 0, -10);
+    lv_obj_t *detail = label_new(screen, available ? "Same Wi-Fi network\nCity · Finnhub Key · Wi-Fi" : "Then return to this page", &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_set_style_text_align(detail, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(detail, LV_ALIGN_CENTER, 0, 34);
+    lv_obj_t *hint = label_new(screen, "Long press to return", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
 }
 
 static void render_provisioning(lv_obj_t *screen) {
@@ -405,6 +422,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_PROVISIONING: render_provisioning(screen); break;
         case PAGE_LOADING: render_loading(screen, settings); break;
         case PAGE_SETTINGS_MENU: render_settings_menu(screen, navigation, settings); break;
+        case PAGE_CONFIG_URL: render_config_url(screen); break;
         default: break;
     }
     lvgl_port_unlock();
