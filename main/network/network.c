@@ -401,4 +401,13 @@ bool network_is_connecting(void) { return connect_requested && !connected; }
 bool network_connection_failed(void) { return connection_failed; }
 bool network_initial_sync_complete(void) { return initial_sync_completed; }
 bool network_time_is_synced(void) { return time_synced; }
+unsigned int network_wifi_signal_level(void) {
+    if (!connected) return 0;
+    wifi_ap_record_t access_point = {0};
+    if (esp_wifi_sta_get_ap_info(&access_point) != ESP_OK) return 0;
+    if (access_point.rssi >= -55) return 4;
+    if (access_point.rssi >= -67) return 3;
+    if (access_point.rssi >= -75) return 2;
+    return 1;
+}
 esp_err_t network_factory_reset(void) { return esp_wifi_restore(); }

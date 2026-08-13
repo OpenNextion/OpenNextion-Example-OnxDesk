@@ -59,6 +59,15 @@ static void add_header(lv_obj_t *screen, const char *title) {
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 18);
 }
 
+static void add_wifi_signal(lv_obj_t *screen) {
+    const unsigned int level = network_wifi_signal_level();
+    static const int heights[] = { 4, 7, 10, 13 };
+    for (int i = 0; i < 4; i++) {
+        const uint32_t color = level == 0 ? COLOR_MUTED : (unsigned int)i < level ? COLOR_TEAL : COLOR_MUTED;
+        panel_new(screen, 109 + i * 6, 38 - heights[i], 4, heights[i], color, LV_OPA_COVER);
+    }
+}
+
 static void render_clock(lv_obj_t *screen) {
     const time_t now = time(NULL);
     struct tm local_time = {0};
@@ -83,8 +92,7 @@ static void render_clock(lv_obj_t *screen) {
     lv_obj_set_style_arc_opa(ring, LV_OPA_60, LV_PART_INDICATOR);
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
 
-    lv_obj_t *wifi = label_new(screen, "WiFi", &lv_font_montserrat_12, COLOR_TEAL);
-    lv_obj_align(wifi, LV_ALIGN_TOP_MID, 0, 25);
+    add_wifi_signal(screen);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -10);
     lv_obj_t *date_label = label_new(screen, date_text, &lv_font_montserrat_14, COLOR_SECONDARY);

@@ -5,7 +5,6 @@
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "esp_timer.h"
 #include "freertos/task.h"
 
 #define ENCODER_A_GPIO GPIO_NUM_48
@@ -19,17 +18,26 @@
 
 static const char *TAG = "input";
 static QueueHandle_t event_queue;
-static int64_t last_encoder_event_us;
+static volatile uint8_t encoder_state;
+static volatile int8_t encoder_transitions;
+
+static const int8_t encoder_transition_table[16] = {
+     0, -1,  1,  0,
+     1,  0,  0, -1,
+    -1,  0,  0,  1,
+     0,  1, -1,  0,
+};
 
 static void IRAM_ATTR encoder_isr(void *argument) {
     (void)argument;
-    const int64_t now = esp_timer_get_time();
-    if (now - last_encoder_event_us < 750) return;
-    last_encoder_event_us = now;
-
     const int a = gpio_get_level(ENCODER_A_GPIO);
     const int b = gpio_get_level(ENCODER_B_GPIO);
-    input_event_t event = { .type = INPUT_EVENT_ROTATE, .value = (a == b) ? 1 : -1 };
+    const uint8_t next_state = (uint8_t)((a << 1) | b);
+    encoder_transitions += encoder_transition_table[(encoder_state << 2) | next_state];
+    encoder_state = next_state;
+    if (encoder_transitions > -4 && encoder_transitions < 4) return;
+    input_event_t event = { .type = INPUT_EVENT_ROTATE, .value = encoder_transitions > 0 ? 1 : -1 };
+    encoder_transitions = 0;
     BaseType_t higher_priority_task_woken = pdFALSE;
     xQueueSendFromISR(event_queue, &event, &higher_priority_task_woken);
     if (higher_priority_task_woken) portYIELD_FROM_ISR();
@@ -87,9 +95,12 @@ esp_err_t input_init(void) {
         .intr_type = GPIO_INTR_DISABLE,
     };
     ESP_RETURN_ON_ERROR(gpio_config(&input_config), TAG, "configure inputs");
+    encoder_state = (uint8_t)((gpio_get_level(ENCODER_A_GPIO) << 1) | gpio_get_level(ENCODER_B_GPIO));
     ESP_RETURN_ON_ERROR(gpio_set_intr_type(ENCODER_A_GPIO, GPIO_INTR_ANYEDGE), TAG, "configure encoder interrupt");
+    ESP_RETURN_ON_ERROR(gpio_set_intr_type(ENCODER_B_GPIO, GPIO_INTR_ANYEDGE), TAG, "configure encoder interrupt");
     ESP_RETURN_ON_ERROR(gpio_install_isr_service(ESP_INTR_FLAG_IRAM), TAG, "install GPIO ISR service");
     ESP_RETURN_ON_ERROR(gpio_isr_handler_add(ENCODER_A_GPIO, encoder_isr, NULL), TAG, "add encoder ISR");
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(ENCODER_B_GPIO, encoder_isr, NULL), TAG, "add encoder ISR");
 
     BaseType_t created = xTaskCreate(input_poll_task, "input_poll", 3072, NULL, 10, NULL);
     if (created != pdPASS) return ESP_ERR_NO_MEM;

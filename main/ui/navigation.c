@@ -4,17 +4,22 @@ static const app_page_t channel_pages[] = {
     PAGE_CLOCK, PAGE_WEATHER, PAGE_CRYPTO, PAGE_MARKETS, PAGE_NEWS_HOME, PAGE_SETTINGS,
 };
 
+static int wrap_index(int value, int count) {
+    value %= count;
+    return value < 0 ? value + count : value;
+}
+
 void navigation_init(navigation_t *navigation) {
     *navigation = (navigation_t){ .page = PAGE_CLOCK, .parent_page = PAGE_CLOCK, .news_category = NEWS_WORLD };
 }
 
 void navigation_rotate(navigation_t *navigation, int steps) {
     if (navigation->page == PAGE_NEWS_LIST) {
-        navigation->selected_index = (unsigned int)((int)navigation->selected_index + steps + 8) % 8;
+        navigation->selected_index = (unsigned int)wrap_index((int)navigation->selected_index + steps, 8);
     } else if (navigation->page == PAGE_NEWS_CATEGORY_PICKER) {
-        navigation->news_category = (news_category_t)(((int)navigation->news_category + steps + 3) % 3);
+        navigation->news_category = (news_category_t)wrap_index((int)navigation->news_category + steps, 3);
     } else if (navigation->page <= PAGE_SETTINGS) {
-        navigation->page = channel_pages[((int)navigation->page + steps + 6) % 6];
+        navigation->page = channel_pages[wrap_index((int)navigation->page + steps, 6)];
     }
 }
 
