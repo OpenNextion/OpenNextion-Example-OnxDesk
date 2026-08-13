@@ -132,15 +132,19 @@ static const char setup_page[] =
     "<title>OnxDesk setup</title><style>body{max-width:34rem;margin:2rem auto;padding:0 1rem;background:#0d0d1a;color:#fff;font:16px system-ui}"
     "h1{color:#5dcaa5}input,select,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}"
     "input,select{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
-    "<h1>OnxDesk setup</h1><p>Connect Wi-Fi first. Then choose your city for local time and free weather.</p>"
+    "<h1>OnxDesk Wi-Fi setup</h1><p>Choose your 2.4 GHz Wi-Fi network, then enter its password.</p>"
     "<form method=post action=/configure><label>Nearby Wi-Fi networks</label><select id=ssid name=ssid required><option selected disabled value=''>Scanning nearby networks…</option></select><button type=button id=refresh>Refresh network list</button>"
     "<div id=manual hidden><label>Other Wi-Fi name (SSID)</label><input id=manual_ssid name=manual_ssid maxlength=32 autocomplete=off disabled></div>"
     "<label>Password</label><input name=password type=password maxlength=64 autocomplete=current-password>"
-    "<button id=connect type=submit>Connect</button></form><p id=status><small>Select a network, then test the connection.</small></p>"
-    "<hr><h2>City, time and weather</h2><p><small>After Wi-Fi connects, search in English (for example: London or New York).</small></p><label>City</label><input id=city_query maxlength=63 placeholder='Search city' autocomplete=off><button type=button id=city_search>Search cities</button><select id=city_results hidden></select><button type=button id=city_save hidden>Use this city</button><p id=city_status><small>City not configured.</small></p>"
-    "<hr><h2>Market data</h2><p><small>Finnhub key is optional and stays only on this device.</small></p><label>Finnhub API key</label><input id=market_key type=password maxlength=95 autocomplete=off placeholder='Paste your API key'><button type=button id=market_save>Save Finnhub key</button><p id=market_status><small>Get a key at <a href=https://finnhub.io/register>finnhub.io/register</a>.</small></p><small>Saving a city sets its IANA time zone and fetches weather from Open-Meteo. This page stays available at the device's LAN IP while OnxDesk is powered on.</small>"
-    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid'),f=document.querySelector('form'),b=document.querySelector('#connect'),z=document.querySelector('#status'),q=document.querySelector('#city_query'),r=document.querySelector('#city_results'),cs=document.querySelector('#city_search'),sv=document.querySelector('#city_save'),cz=document.querySelector('#city_status'),mk=document.querySelector('#market_key'),ms=document.querySelector('#market_save'),mz=document.querySelector('#market_status');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}function poll(){fetch('/status').then(r=>r.text()).then(t=>{if(t==='connected'){z.textContent='Connected. You can now search for your city.';b.disabled=true}else if(t==='failed'){z.textContent='Connection failed. Check the password and try again.';b.disabled=false}else setTimeout(poll,1000)}).catch(()=>{z.textContent='Could not check connection status.';b.disabled=false})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;f.onsubmit=e=>{e.preventDefault();b.disabled=true;z.textContent='Connecting…';fetch('/configure',{method:'POST',body:new URLSearchParams(new FormData(f))}).then(x=>{if(!x.ok)throw 0;poll()}).catch(()=>{z.textContent='Could not start connection.';b.disabled=false})};cs.onclick=()=>{let city=q.value.trim();if(!city){cz.textContent='Enter a city name.';return}cs.disabled=true;cz.textContent='Searching…';fetch('/city-search?query='+encodeURIComponent(city)).then(x=>x.ok?x.json():Promise.reject()).then(items=>{r.textContent='';items.forEach(x=>{let o=document.createElement('option');o.textContent=x.name+' · '+x.timezone;o.value=JSON.stringify(x);r.append(o)});r.hidden=!items.length;sv.hidden=!items.length;cz.textContent=items.length?'Choose the matching city.':'No matching city found.'}).catch(()=>cz.textContent='Search unavailable. Connect Wi-Fi first.').finally(()=>cs.disabled=false)};sv.onclick=()=>{if(!r.value)return;let x=JSON.parse(r.value);sv.disabled=true;cz.textContent='Saving city and refreshing weather…';fetch('/city-save',{method:'POST',body:new URLSearchParams(x)}).then(y=>y.ok?y.text():Promise.reject()).then(t=>cz.textContent=t).catch(()=>cz.textContent='Could not save city.').finally(()=>sv.disabled=false)};ms.onclick=()=>{ms.disabled=true;mz.textContent='Saving key…';fetch('/market-key',{method:'POST',body:new URLSearchParams({api_key:mk.value})}).then(x=>x.ok?x.text():Promise.reject()).then(t=>{mk.value='';mz.textContent=t}).catch(()=>mz.textContent='Could not save key.').finally(()=>ms.disabled=false)};scan();</script>"
+    "<button id=connect type=submit>Connect</button></form><p id=status><small>Select a network, then test the connection.</small></p><small>After Wi-Fi connects, OnxDesk opens its Clock screen. Configure city and optional service keys later from Settings.</small>"
+    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid'),f=document.querySelector('form'),b=document.querySelector('#connect'),z=document.querySelector('#status');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}function poll(){fetch('/status').then(r=>r.text()).then(t=>{if(t==='connected'){z.textContent='Connected. OnxDesk is opening its Clock screen.';b.disabled=true}else if(t==='failed'){z.textContent='Connection failed. Check the password and try again.';b.disabled=false}else setTimeout(poll,1000)}).catch(()=>{z.textContent='Could not check connection status.';b.disabled=false})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;f.onsubmit=e=>{e.preventDefault();b.disabled=true;z.textContent='Connecting…';fetch('/configure',{method:'POST',body:new URLSearchParams(new FormData(f))}).then(x=>{if(!x.ok)throw 0;poll()}).catch(()=>{z.textContent='Could not start connection.';b.disabled=false})};scan();</script>"
     "</body></html>";
+
+static const char settings_page[] =
+    "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'><title>OnxDesk settings</title><style>body{max-width:34rem;margin:2rem auto;padding:0 1rem;background:#0d0d1a;color:#fff;font:16px system-ui}h1{color:#5dcaa5}input,select,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}input,select{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
+    "<h1>OnxDesk settings</h1><h2>City, time and weather</h2><p><small>Search in English (for example: London or New York).</small></p><label>City</label><input id=city_query maxlength=63 placeholder='Search city' autocomplete=off><button type=button id=city_search>Search cities</button><select id=city_results hidden></select><button type=button id=city_save hidden>Use this city</button><p id=city_status><small>City not configured.</small></p>"
+    "<hr><h2>Market data</h2><p><small>Finnhub key is optional and stays only on this device.</small></p><label>Finnhub API key</label><input id=market_key type=password maxlength=95 autocomplete=off placeholder='Paste your API key'><button type=button id=market_save>Save Finnhub key</button><p id=market_status><small>Get a key at <a href=https://finnhub.io/register>finnhub.io/register</a>.</small></p>"
+    "<script>let q=document.querySelector('#city_query'),r=document.querySelector('#city_results'),cs=document.querySelector('#city_search'),sv=document.querySelector('#city_save'),cz=document.querySelector('#city_status'),mk=document.querySelector('#market_key'),ms=document.querySelector('#market_save'),mz=document.querySelector('#market_status');cs.onclick=()=>{let city=q.value.trim();if(!city){cz.textContent='Enter a city name.';return}cs.disabled=true;cz.textContent='Searching…';fetch('/city-search?query='+encodeURIComponent(city)).then(x=>x.ok?x.json():Promise.reject()).then(items=>{r.textContent='';items.forEach(x=>{let o=document.createElement('option');o.textContent=x.name+' · '+x.timezone;o.value=JSON.stringify(x);r.append(o)});r.hidden=!items.length;sv.hidden=!items.length;cz.textContent=items.length?'Choose the matching city.':'No matching city found.'}).catch(()=>cz.textContent='Search unavailable. Check Wi-Fi.').finally(()=>cs.disabled=false)};sv.onclick=()=>{if(!r.value)return;let x=JSON.parse(r.value);sv.disabled=true;cz.textContent='Saving city and refreshing weather…';fetch('/city-save',{method:'POST',body:new URLSearchParams(x)}).then(y=>y.ok?y.text():Promise.reject()).then(t=>cz.textContent=t).catch(()=>cz.textContent='Could not save city.').finally(()=>sv.disabled=false)};ms.onclick=()=>{ms.disabled=true;mz.textContent='Saving key…';fetch('/market-key',{method:'POST',body:new URLSearchParams({api_key:mk.value})}).then(x=>x.ok?x.text():Promise.reject()).then(t=>{mk.value='';mz.textContent=t}).catch(()=>mz.textContent='Could not save key.').finally(()=>ms.disabled=false)}</script></body></html>";
 
 static void url_decode(char *text) {
     char *read = text;
@@ -240,6 +244,15 @@ static void dns_redirect_task(void *argument) {
 static esp_err_t root_get_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/html");
     return httpd_resp_send(req, setup_page, HTTPD_RESP_USE_STRLEN);
+}
+
+static esp_err_t settings_get_handler(httpd_req_t *req) {
+    if (!connected) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Connect OnxDesk to Wi-Fi first");
+        return ESP_FAIL;
+    }
+    httpd_resp_set_type(req, "text/html");
+    return httpd_resp_send(req, settings_page, HTTPD_RESP_USE_STRLEN);
 }
 
 static esp_err_t scan_get_handler(httpd_req_t *req) {
@@ -475,6 +488,7 @@ static void start_setup_server(void) {
     httpd_handle_t server = NULL;
     ESP_ERROR_CHECK(httpd_start(&server, &config));
     const httpd_uri_t root = { .uri = "/", .method = HTTP_GET, .handler = root_get_handler };
+    const httpd_uri_t settings = { .uri = "/settings", .method = HTTP_GET, .handler = settings_get_handler };
     const httpd_uri_t scan = { .uri = "/scan", .method = HTTP_GET, .handler = scan_get_handler };
     const httpd_uri_t status = { .uri = "/status", .method = HTTP_GET, .handler = status_get_handler };
     const httpd_uri_t configure = { .uri = "/configure", .method = HTTP_POST, .handler = configure_post_handler };
@@ -482,6 +496,7 @@ static void start_setup_server(void) {
     const httpd_uri_t city_save = { .uri = "/city-save", .method = HTTP_POST, .handler = city_save_post_handler };
     const httpd_uri_t market_key = { .uri = "/market-key", .method = HTTP_POST, .handler = market_key_post_handler };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &root));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &settings));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &scan));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &status));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &configure));
@@ -517,7 +532,7 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
         connection_failed = false;
         connection_retries = 0;
         start_initial_sync();
-        ESP_LOGI(TAG, "Wi-Fi connected; local settings URL: http://%s/", station_ip);
+        ESP_LOGI(TAG, "Wi-Fi connected; local settings URL: http://%s/settings", station_ip);
     }
 }
 
@@ -587,6 +602,10 @@ bool network_get_weather(weather_snapshot_t *weather) {
 bool network_weather_is_refreshing(void) { return weather_refreshing; }
 const char *network_setup_ssid(void) { return setup_ap_ssid; }
 bool network_local_url(char *buffer, size_t buffer_size) {
+    if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;
+    return snprintf(buffer, buffer_size, "http://%s/settings", station_ip) < (int)buffer_size;
+}
+bool network_local_wifi_url(char *buffer, size_t buffer_size) {
     if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;
     return snprintf(buffer, buffer_size, "http://%s/", station_ip) < (int)buffer_size;
 }
