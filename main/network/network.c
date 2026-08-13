@@ -45,13 +45,14 @@ typedef struct __attribute__((packed)) {
 static const char setup_page[] =
     "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'>"
     "<title>OnxDesk setup</title><style>body{max-width:34rem;margin:2rem auto;padding:0 1rem;background:#0d0d1a;color:#fff;font:16px system-ui}"
-    "h1{color:#5dcaa5}input,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}"
-    "input{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
+    "h1{color:#5dcaa5}input,select,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}"
+    "input,select{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
     "<h1>OnxDesk Wi-Fi setup</h1><p>Choose your 2.4 GHz Wi-Fi network, then enter its password.</p>"
-    "<form method=post action=/configure><label>Wi-Fi name (SSID)</label><input id=ssid name=ssid list=networks maxlength=32 required autocomplete=off placeholder='Scanning nearby networks…'><datalist id=networks></datalist>"
+    "<form method=post action=/configure><label>Nearby Wi-Fi networks</label><select id=ssid name=ssid required><option selected disabled value=''>Scanning nearby networks…</option></select><button type=button id=refresh>Refresh network list</button>"
+    "<div id=manual hidden><label>Other Wi-Fi name (SSID)</label><input id=manual_ssid name=manual_ssid maxlength=32 autocomplete=off disabled></div>"
     "<label>Password</label><input name=password type=password maxlength=64 autocomplete=current-password>"
     "<button type=submit>Connect</button></form><small>After a successful connection, OnxDesk will open its Clock screen. This setup network remains available until the device is restarted.</small>"
-    "<script>fetch('/scan').then(r=>r.text()).then(t=>{let d=document.querySelector('#networks');t.trim().split('\\n').filter(Boolean).forEach(n=>{let o=document.createElement('option');o.value=n;d.append(o)});document.querySelector('#ssid').placeholder='Select or enter Wi-Fi name'}).catch(()=>{document.querySelector('#ssid').placeholder='Enter Wi-Fi name manually'});</script>"
+    "<script>let s=document.querySelector('#ssid'),m=document.querySelector('#manual'),i=document.querySelector('#manual_ssid');function manual(){let x=s.value==='__manual__';m.hidden=!x;i.disabled=!x;i.required=x}function add(v,t){let o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)}function scan(){s.textContent='';add('','Scanning nearby networks…');s.options[0].disabled=true;s.value='';fetch('/scan').then(r=>r.text()).then(t=>{s.textContent='';add('','Choose a Wi-Fi network');s.options[0].disabled=true;t.trim().split('\\n').filter(Boolean).forEach(n=>add(n,n));add('__manual__','Other network…')}).catch(()=>{s.textContent='';add('__manual__','Enter Wi-Fi name manually');s.value='__manual__';manual()})}s.onchange=manual;document.querySelector('#refresh').onclick=scan;scan();</script>"
     "</body></html>";
 
 static void url_decode(char *text) {
@@ -188,11 +189,20 @@ static esp_err_t configure_post_handler(httpd_req_t *req) {
     }
     body[received] = '\0';
 
+    char selected_ssid[sizeof(((wifi_sta_config_t *)0)->ssid)] = {0};
     char ssid[sizeof(((wifi_sta_config_t *)0)->ssid)] = {0};
     char password[sizeof(((wifi_sta_config_t *)0)->password)] = {0};
-    if (!form_value(body, "ssid", ssid, sizeof(ssid)) || ssid[0] == '\0') {
+    if (!form_value(body, "ssid", selected_ssid, sizeof(selected_ssid)) || selected_ssid[0] == '\0') {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Wi-Fi name is required");
         return ESP_FAIL;
+    }
+    if (strcmp(selected_ssid, "__manual__") == 0) {
+        if (!form_value(body, "manual_ssid", ssid, sizeof(ssid)) || ssid[0] == '\0') {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Wi-Fi name is required");
+            return ESP_FAIL;
+        }
+    } else {
+        strlcpy(ssid, selected_ssid, sizeof(ssid));
     }
     if (!form_value(body, "password", password, sizeof(password))) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid Wi-Fi form");
