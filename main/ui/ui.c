@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include "esp_check.h"
 #include "esp_lvgl_port.h"
@@ -59,16 +60,30 @@ static void add_header(lv_obj_t *screen, const char *title) {
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 18);
 }
 
-static void add_wifi_signal(lv_obj_t *screen) {
+static void add_wifi_signal(lv_obj_t *screen, int x) {
     const unsigned int level = network_wifi_signal_level();
     static const int heights[] = { 4, 7, 10, 13 };
     for (int i = 0; i < 4; i++) {
         const uint32_t color = level == 0 ? COLOR_MUTED : (unsigned int)i < level ? COLOR_TEAL : COLOR_MUTED;
-        panel_new(screen, 109 + i * 6, 38 - heights[i], 4, heights[i], color, LV_OPA_COVER);
+        panel_new(screen, x + i * 6, 38 - heights[i], 4, heights[i], color, LV_OPA_COVER);
     }
 }
 
-static void render_clock(lv_obj_t *screen) {
+static void clock_city_name(const app_settings_t *settings, char *name, size_t name_size) {
+    const char *source = settings != NULL && settings->city[0] != '\0' ? settings->city : "Set city";
+    size_t length = strcspn(source, ",");
+    if (length >= name_size) length = name_size - 1;
+    memcpy(name, source, length);
+    name[length] = '\0';
+    if (length > 15) {
+        name[12] = '.';
+        name[13] = '.';
+        name[14] = '.';
+        name[15] = '\0';
+    }
+}
+
+static void render_clock(lv_obj_t *screen, const app_settings_t *settings) {
     const time_t now = time(NULL);
     struct tm local_time = {0};
     localtime_r(&now, &local_time);
@@ -92,7 +107,13 @@ static void render_clock(lv_obj_t *screen) {
     lv_obj_set_style_arc_opa(ring, LV_OPA_60, LV_PART_INDICATOR);
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
 
-    add_wifi_signal(screen);
+    char city[20] = {0};
+    clock_city_name(settings, city, sizeof(city));
+    lv_obj_t *city_label = label_new(screen, city, &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_set_width(city_label, 172);
+    lv_obj_set_style_text_align(city_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(city_label, LV_ALIGN_TOP_MID, -12, 22);
+    add_wifi_signal(screen, 198);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -10);
     lv_obj_t *date_label = label_new(screen, date_text, &lv_font_montserrat_14, COLOR_SECONDARY);
@@ -442,7 +463,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
     lv_obj_set_style_bg_color(screen, lv_color_hex(COLOR_BG), 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
     switch (navigation->page) {
-        case PAGE_CLOCK: render_clock(screen); break;
+        case PAGE_CLOCK: render_clock(screen, settings); break;
         case PAGE_WEATHER: render_weather(screen, navigation, settings); break;
         case PAGE_CRYPTO: render_crypto(screen); break;
         case PAGE_MARKETS: render_markets(screen, settings); break;
