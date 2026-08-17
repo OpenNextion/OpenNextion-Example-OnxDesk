@@ -131,8 +131,9 @@ void network_request_crypto_refresh(void) {
 
 static void market_refresh_task(void *argument) {
     (void)argument;
-    static const char *symbols[] = { "^DJI", "^IXIC", "^GSPC" };
-    static const char *names[] = { "Dow Jones", "Nasdaq", "S&P 500" };
+    /* Finnhub's free tier serves these liquid ETFs, while the matching ^ index symbols require a paid subscription. */
+    static const char *symbols[] = { "DIA", "QQQ", "SPY" };
+    static const char *names[] = { "Dow Jones ETF", "Nasdaq-100 ETF", "S&P 500 ETF" };
     char api_key[sizeof(active_settings->finnhub_api_key)] = {0};
     strlcpy(api_key, active_settings->finnhub_api_key, sizeof(api_key));
     for (size_t index = 0; index < sizeof(symbols) / sizeof(symbols[0]); index++) {

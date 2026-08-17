@@ -422,7 +422,7 @@ static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
     market_quote_t quote = {0};
     const bool available = network_get_market_quote(0, &quote);
     add_header(screen, "DOW JONES");
-    lv_obj_t *symbol = label_new(screen, "^DJI", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_t *symbol = label_new(screen, "DIA - ETF proxy", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(symbol, LV_ALIGN_TOP_MID, 0, 42);
     char price_text[20] = "--";
     if (available) snprintf(price_text, sizeof(price_text), "%.0f", quote.value);
@@ -436,13 +436,13 @@ static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
     }
     lv_obj_t *change = label_new(screen, change_text, &lv_font_montserrat_16, change_color);
     lv_obj_align(change, LV_ALIGN_CENTER, 0, 2);
-    lv_obj_t *updated = label_new(screen, available ? "Finnhub quote - may be delayed" : network_market_is_refreshing() ? "Refreshing Finnhub..." : "Finnhub unavailable", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_t *updated = label_new(screen, available ? "Finnhub ETF quote - may be delayed" : network_market_is_refreshing() ? "Refreshing Finnhub..." : "Finnhub unavailable", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(updated, LV_ALIGN_CENTER, 0, 50);
     if (!available && !network_market_is_refreshing()) {
         lv_obj_t *setup_hint = label_new(screen, "Press to update Finnhub key", &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(setup_hint, LV_ALIGN_CENTER, 0, 66);
     }
-    lv_obj_t *selector = label_new(screen, "DJI     IXIC     GSPC", &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_t *selector = label_new(screen, "DIA     QQQ     SPY", &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_align(selector, LV_ALIGN_CENTER, 0, available || network_market_is_refreshing() ? 78 : 86);
     add_channel_nav(screen, PAGE_MARKETS);
 }
