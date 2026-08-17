@@ -95,6 +95,13 @@ static void focus_cancel(navigation_t *navigation) {
     navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
 }
 
+static void focus_begin_adjustment(navigation_t *navigation) {
+    if (navigation->focus_remaining_seconds == 0) {
+        navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
+    }
+    navigation->focus_adjusting = true;
+}
+
 static home_page_t selected_optional_home_page(const navigation_t *navigation) {
     static const home_page_t optional_pages[] = { HOME_WEATHER, HOME_CRYPTO, HOME_MARKETS, HOME_FOCUS };
     return optional_pages[navigation->home_pages_item % (sizeof(optional_pages) / sizeof(optional_pages[0]))];
@@ -171,7 +178,8 @@ void app_main(void) {
                 }
             } else if (navigation.page == PAGE_FOCUS && !navigation.focus_running) {
                 if (navigation.focus_paused) focus_toggle(&navigation);
-                else navigation.focus_adjusting = !navigation.focus_adjusting;
+                else if (navigation.focus_adjusting) navigation.focus_adjusting = false;
+                else focus_begin_adjustment(&navigation);
             } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings, &navigation)) {
                 navigation.parent_page = PAGE_MARKETS;
                 navigation.settings_item = SETTINGS_FINNHUB;
