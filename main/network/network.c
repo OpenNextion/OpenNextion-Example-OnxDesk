@@ -232,9 +232,9 @@ static const char setup_page[] =
 
 static const char settings_page[] =
     "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'><title>OnxDesk settings</title><style>body{max-width:34rem;margin:2rem auto;padding:0 1rem;background:#0d0d1a;color:#fff;font:16px system-ui}h1{color:#5dcaa5}input,select,button{box-sizing:border-box;width:100%;padding:.8rem;margin:.4rem 0;border-radius:.5rem;border:0}input,select{background:#1a1a2e;color:#fff}button{background:#5dcaa5;color:#0d0d1a;font-weight:bold}small{color:#8a8a9e}</style></head><body>"
-    "<h1>OnxDesk settings</h1><h2>City, time and weather</h2><p><small>Search in English (for example: London or New York).</small></p><label>City</label><input id=city_query maxlength=63 placeholder='Search city' autocomplete=off><button type=button id=city_search>Search cities</button><select id=city_results hidden></select><button type=button id=city_save hidden>Use this city</button><p id=city_status><small>City not configured.</small></p>"
+    "<h1>OnxDesk settings</h1><h2>City, time and weather</h2><p id=city_status><small>Loading city...</small></p><button type=button id=city_change hidden>Change city</button><div id=city_search_form hidden><p><small>Search in English (for example: London or New York).</small></p><label>City</label><input id=city_query maxlength=63 placeholder='Search city' autocomplete=off><button type=button id=city_search>Search cities</button><select id=city_results hidden></select><button type=button id=city_save hidden>Use this city</button></div>"
     "<hr><h2>Market data</h2><p><small>Finnhub key is optional and stays only on this device.</small></p><label>Finnhub API key</label><input id=market_key type=password maxlength=95 autocomplete=off placeholder='Paste your API key'><button type=button id=market_save>Save Finnhub key</button><p id=market_status><small>Get a key at <a href=https://finnhub.io/register>finnhub.io/register</a>.</small></p>"
-    "<script>let q=document.querySelector('#city_query'),r=document.querySelector('#city_results'),cs=document.querySelector('#city_search'),sv=document.querySelector('#city_save'),cz=document.querySelector('#city_status'),mk=document.querySelector('#market_key'),ms=document.querySelector('#market_save'),mz=document.querySelector('#market_status');cs.onclick=()=>{let city=q.value.trim();if(!city){cz.textContent='Enter a city name.';return}cs.disabled=true;cz.textContent='Searching...';fetch('/city-search?query='+encodeURIComponent(city)).then(x=>x.ok?x.json():Promise.reject()).then(items=>{r.textContent='';items.forEach(x=>{let o=document.createElement('option');o.textContent=x.name+' - '+x.timezone;o.value=JSON.stringify(x);r.append(o)});r.hidden=!items.length;sv.hidden=!items.length;cz.textContent=items.length?'Choose the matching city.':'No matching city found.'}).catch(()=>cz.textContent='Search unavailable. Check Wi-Fi.').finally(()=>cs.disabled=false)};sv.onclick=()=>{if(!r.value)return;let x=JSON.parse(r.value);sv.disabled=true;cz.textContent='Saving city and refreshing weather...';fetch('/city-save',{method:'POST',body:new URLSearchParams(x)}).then(y=>y.ok?y.text():Promise.reject()).then(t=>cz.textContent=t).catch(()=>cz.textContent='Could not save city.').finally(()=>sv.disabled=false)};ms.onclick=()=>{ms.disabled=true;mz.textContent='Saving key...';fetch('/market-key',{method:'POST',body:new URLSearchParams({api_key:mk.value})}).then(x=>x.ok?x.text():Promise.reject()).then(t=>{mk.value='';mz.textContent=t}).catch(()=>mz.textContent='Could not save key.').finally(()=>ms.disabled=false)}</script></body></html>";
+    "<script>let q=document.querySelector('#city_query'),r=document.querySelector('#city_results'),cs=document.querySelector('#city_search'),sv=document.querySelector('#city_save'),cz=document.querySelector('#city_status'),cf=document.querySelector('#city_search_form'),cc=document.querySelector('#city_change'),mk=document.querySelector('#market_key'),ms=document.querySelector('#market_save'),mz=document.querySelector('#market_status');function showSearch(){cf.hidden=false;cc.hidden=true;q.focus()}function cityState(x){let configured=!!x.city;cz.textContent=configured?'Current city: '+x.city:'Choose a city to enable local time and weather.';cc.textContent=configured?'Change city':'Set up city';cc.hidden=false;cf.hidden=configured}cc.onclick=showSearch;fetch('/settings-state').then(x=>x.ok?x.json():Promise.reject()).then(cityState).catch(()=>{cz.textContent='Could not load city settings.';cc.textContent='Set up city';cc.hidden=false});cs.onclick=()=>{let city=q.value.trim();if(!city){cz.textContent='Enter a city name.';return}cs.disabled=true;cz.textContent='Searching...';fetch('/city-search?query='+encodeURIComponent(city)).then(x=>x.ok?x.json():Promise.reject()).then(items=>{r.textContent='';items.forEach(x=>{let o=document.createElement('option');o.textContent=x.name+' - '+x.timezone;o.value=JSON.stringify(x);r.append(o)});r.hidden=!items.length;sv.hidden=!items.length;cz.textContent=items.length?'Choose the matching city.':'No matching city found.'}).catch(()=>cz.textContent='Search unavailable. Check Wi-Fi.').finally(()=>cs.disabled=false)};sv.onclick=()=>{if(!r.value)return;let x=JSON.parse(r.value);sv.disabled=true;cz.textContent='Saving city and refreshing weather...';fetch('/city-save',{method:'POST',body:new URLSearchParams(x)}).then(y=>y.ok?y.text():Promise.reject()).then(t=>{cityState({city:x.name});cz.textContent=t;cf.hidden=true}).catch(()=>cz.textContent='Could not save city.').finally(()=>sv.disabled=false)};ms.onclick=()=>{ms.disabled=true;mz.textContent='Saving key...';fetch('/market-key',{method:'POST',body:new URLSearchParams({api_key:mk.value})}).then(x=>x.ok?x.text():Promise.reject()).then(t=>{mk.value='';mz.textContent=t}).catch(()=>mz.textContent='Could not save key.').finally(()=>ms.disabled=false)}</script></body></html>";
 
 static void url_decode(char *text) {
     char *read = text;
@@ -575,6 +575,23 @@ static esp_err_t market_key_post_handler(httpd_req_t *req) {
     return httpd_resp_sendstr(req, key[0] == '\0' ? "Finnhub key cleared." : "Finnhub key saved on this device.");
 }
 
+static esp_err_t settings_state_get_handler(httpd_req_t *req) {
+    if (!connected || active_settings == NULL) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Connect OnxDesk to Wi-Fi first");
+        return ESP_FAIL;
+    }
+    cJSON *state = cJSON_CreateObject();
+    if (state == NULL) return ESP_ERR_NO_MEM;
+    cJSON_AddStringToObject(state, "city", active_settings->city);
+    char *json = cJSON_PrintUnformatted(state);
+    cJSON_Delete(state);
+    if (json == NULL) return ESP_ERR_NO_MEM;
+    httpd_resp_set_type(req, "application/json");
+    const esp_err_t error = httpd_resp_sendstr(req, json);
+    cJSON_free(json);
+    return error;
+}
+
 static esp_err_t redirect_handler(httpd_req_t *req, httpd_err_code_t error) {
     (void)error;
     httpd_resp_set_status(req, "302 Found");
@@ -599,6 +616,7 @@ static void start_setup_server(void) {
     const httpd_uri_t scan = { .uri = "/scan", .method = HTTP_GET, .handler = scan_get_handler };
     const httpd_uri_t status = { .uri = "/status", .method = HTTP_GET, .handler = status_get_handler };
     const httpd_uri_t configure = { .uri = "/configure", .method = HTTP_POST, .handler = configure_post_handler };
+    const httpd_uri_t settings_state = { .uri = "/settings-state", .method = HTTP_GET, .handler = settings_state_get_handler };
     const httpd_uri_t city_search = { .uri = "/city-search", .method = HTTP_GET, .handler = city_search_get_handler };
     const httpd_uri_t city_save = { .uri = "/city-save", .method = HTTP_POST, .handler = city_save_post_handler };
     const httpd_uri_t market_key = { .uri = "/market-key", .method = HTTP_POST, .handler = market_key_post_handler };
@@ -607,6 +625,7 @@ static void start_setup_server(void) {
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &scan));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &status));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &configure));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &settings_state));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &city_search));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &city_save));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &market_key));
