@@ -353,12 +353,23 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
         snprintf(wind_text, sizeof(wind_text), "%.0f km/h", weather.wind_speed_kmh);
         lv_obj_t *wind_value = label_new(screen, wind_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 82, 113);
-        char range_text[32];
-        snprintf(range_text, sizeof(range_text), "HIGH %.0f    LOW %.0f", weather.daily_high_c[0], weather.daily_low_c[0]);
-        lv_obj_t *range = label_new(screen, range_text, &lv_font_montserrat_14, COLOR_SECONDARY);
-        lv_obj_align(range, LV_ALIGN_CENTER, 0, 65);
-        lv_obj_update_layout(range);
-        add_celsius_unit(screen, lv_obj_get_x(range) + lv_obj_get_width(range) + 2, lv_obj_get_y(range) + 3, 8, COLOR_SECONDARY);
+        char high_text[16];
+        char low_text[16];
+        snprintf(high_text, sizeof(high_text), "HIGH %.0f", weather.daily_high_c[0]);
+        snprintf(low_text, sizeof(low_text), "LOW %.0f", weather.daily_low_c[0]);
+        lv_obj_t *high = label_new(screen, high_text, &lv_font_montserrat_14, COLOR_SECONDARY);
+        lv_obj_t *low = label_new(screen, low_text, &lv_font_montserrat_14, COLOR_SECONDARY);
+        lv_obj_update_layout(high);
+        lv_obj_update_layout(low);
+        const int unit_width = 10;
+        const int gap = 12;
+        const int total_width = lv_obj_get_width(high) + unit_width + gap + lv_obj_get_width(low) + unit_width;
+        const int x = (DISPLAY_WIDTH - total_width) / 2;
+        lv_obj_set_pos(high, x, 178);
+        add_celsius_unit(screen, x + lv_obj_get_width(high) + 2, 181, 8, COLOR_SECONDARY);
+        const int low_x = x + lv_obj_get_width(high) + unit_width + gap;
+        lv_obj_set_pos(low, low_x, 178);
+        add_celsius_unit(screen, low_x + lv_obj_get_width(low) + 2, 181, 8, COLOR_SECONDARY);
     }
     add_channel_nav(screen, PAGE_WEATHER);
 }
