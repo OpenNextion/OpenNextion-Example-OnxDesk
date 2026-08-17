@@ -42,6 +42,7 @@ typedef struct {
     app_page_t parent_page;
     news_category_t news_category;
     unsigned int selected_index;
+    unsigned int crypto_index;
     settings_menu_item_t settings_item;
     bool weather_forecast;
     bool city_setup_show_qr;

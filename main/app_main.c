@@ -79,7 +79,8 @@ void app_main(void) {
             } else if (navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_WIFI_TEST || navigation.page == PAGE_LOADING) {
                 app_ui_render(&navigation, &settings);
             }
-            if (navigation.page == PAGE_CLOCK) app_ui_render(&navigation, &settings);
+            if (navigation.page == PAGE_CRYPTO) network_request_crypto_refresh();
+            if (navigation.page == PAGE_CLOCK || navigation.page == PAGE_CRYPTO) app_ui_render(&navigation, &settings);
             continue;
         }
         if (event.type == INPUT_EVENT_ROTATE) {

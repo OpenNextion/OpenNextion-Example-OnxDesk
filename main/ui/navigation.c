@@ -14,7 +14,9 @@ void navigation_init(navigation_t *navigation) {
 }
 
 void navigation_rotate(navigation_t *navigation, int steps) {
-    if (navigation->page == PAGE_NEWS_LIST) {
+    if (navigation->page == PAGE_CRYPTO) {
+        navigation->crypto_index = (unsigned int)wrap_index((int)navigation->crypto_index + steps, 3);
+    } else if (navigation->page == PAGE_NEWS_LIST) {
         navigation->selected_index = (unsigned int)wrap_index((int)navigation->selected_index + steps, 8);
     } else if (navigation->page == PAGE_NEWS_CATEGORY_PICKER) {
         navigation->news_category = (news_category_t)wrap_index((int)navigation->news_category + steps, 3);

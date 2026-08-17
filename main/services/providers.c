@@ -75,6 +75,16 @@ static bool json_number(const cJSON *object, const char *name, double *value) {
     return true;
 }
 
+static bool json_string_number(const cJSON *object, const char *name, float *value) {
+    const cJSON *item = cJSON_GetObjectItemCaseSensitive(object, name);
+    if (!cJSON_IsString(item) || item->valuestring == NULL) return false;
+    char *end = NULL;
+    const float parsed = strtof(item->valuestring, &end);
+    if (end == item->valuestring || *end != '\0') return false;
+    *value = parsed;
+    return true;
+}
+
 provider_status_t finnhub_validate_key(const char *api_key) {
     return (api_key != NULL && strlen(api_key) > 8) ? PROVIDER_NOT_CONFIGURED : PROVIDER_NOT_CONFIGURED;
 }
@@ -175,6 +185,30 @@ provider_status_t open_meteo_refresh_weather(double latitude, double longitude, 
     weather->valid = true;
     cJSON_Delete(root);
     free(response);
+    return PROVIDER_READY;
+}
+
+provider_status_t binance_refresh_quote(const char *symbol, crypto_quote_t *quote) {
+    if (symbol == NULL || symbol[0] == '\0' || quote == NULL) return PROVIDER_RESPONSE_ERROR;
+    char url[128];
+    if (snprintf(url, sizeof(url), "https://api.binance.com/api/v3/ticker/24hr?symbol=%s", symbol) >= (int)sizeof(url)) {
+        return PROVIDER_RESPONSE_ERROR;
+    }
+    char *response = calloc(1, HTTP_RESPONSE_MAX);
+    if (response == NULL) return PROVIDER_NETWORK_ERROR;
+    const provider_status_t status = https_get(url, response, HTTP_RESPONSE_MAX);
+    if (status != PROVIDER_READY) {
+        free(response);
+        return status;
+    }
+    cJSON *root = cJSON_Parse(response);
+    float price = 0, change = 0;
+    const bool valid = cJSON_IsObject(root) && json_string_number(root, "lastPrice", &price) &&
+                       json_string_number(root, "priceChangePercent", &change);
+    cJSON_Delete(root);
+    free(response);
+    if (!valid || price <= 0) return PROVIDER_RESPONSE_ERROR;
+    *quote = (crypto_quote_t){ .valid = true, .last_price = price, .change_percent = change };
     return PROVIDER_READY;
 }
 

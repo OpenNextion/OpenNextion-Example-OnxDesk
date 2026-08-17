@@ -29,6 +29,13 @@ typedef struct {
 } weather_snapshot_t;
 
 typedef struct {
+    bool valid;
+    float last_price;
+    float change_percent;
+    int64_t updated_at;
+} crypto_quote_t;
+
+typedef struct {
     const char *symbol;
     const char *name;
     float value;
@@ -58,4 +65,5 @@ provider_status_t open_meteo_search_city(const char *query, city_candidate_t *re
                                          size_t results_capacity, size_t *result_count);
 provider_status_t open_meteo_refresh_weather(double latitude, double longitude,
                                               weather_snapshot_t *weather);
+provider_status_t binance_refresh_quote(const char *symbol, crypto_quote_t *quote);
 provider_status_t gdelt_refresh_category(const char *category);

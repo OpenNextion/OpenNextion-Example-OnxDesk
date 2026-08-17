@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_netif_sntp.h"
+#include "esp_timer.h"
 #include "esp_wifi.h"
 #include "cJSON.h"
 #include "lwip/inet.h"
@@ -20,6 +21,7 @@
 #define SETUP_PAGE_IP "192.168.4.1"
 #define MAX_FORM_BODY 256
 #define MAX_CONNECT_RETRIES 5
+#define CRYPTO_REFRESH_INTERVAL_US (60LL * 1000 * 1000)
 
 static const char *TAG = "network";
 static volatile bool connected;
@@ -30,6 +32,8 @@ static volatile bool initial_sync_started;
 static volatile bool initial_sync_completed;
 static volatile bool time_synced;
 static volatile bool weather_refreshing;
+static volatile bool crypto_refreshing;
+static int64_t crypto_refresh_last_started_us;
 static volatile bool city_saved;
 static volatile bool captive_dns_active;
 static volatile bool captive_dns_running;
@@ -44,6 +48,7 @@ static char setup_ap_ssid[sizeof(((wifi_ap_config_t *)0)->ssid)];
 static char station_ip[16];
 static app_settings_t *active_settings;
 static weather_snapshot_t latest_weather;
+static crypto_quote_t latest_crypto_quotes[3];
 static esp_netif_t *setup_ap_netif;
 
 static esp_err_t enable_setup_ap(void);
@@ -88,6 +93,36 @@ void network_request_weather_refresh(void) {
     }
 }
 
+static void crypto_refresh_task(void *argument) {
+    (void)argument;
+    static const char *symbols[] = { "BTCUSDT", "ETHUSDT", "SOLUSDT" };
+    for (size_t index = 0; index < sizeof(symbols) / sizeof(symbols[0]); index++) {
+        crypto_quote_t refreshed = {0};
+        const provider_status_t status = binance_refresh_quote(symbols[index], &refreshed);
+        if (status == PROVIDER_READY) {
+            refreshed.updated_at = esp_timer_get_time() / 1000000;
+            latest_crypto_quotes[index] = refreshed;
+            ESP_LOGI(TAG, "Binance quote refreshed for %s", symbols[index]);
+        } else {
+            ESP_LOGW(TAG, "Binance quote refresh failed for %s: %d", symbols[index], status);
+        }
+    }
+    crypto_refreshing = false;
+    vTaskDelete(NULL);
+}
+
+void network_request_crypto_refresh(void) {
+    const int64_t now = esp_timer_get_time();
+    if (!connected || crypto_refreshing || now - crypto_refresh_last_started_us < CRYPTO_REFRESH_INTERVAL_US) return;
+    crypto_refreshing = true;
+    if (xTaskCreate(crypto_refresh_task, "crypto_refresh", 7168, NULL, 5, NULL) != pdPASS) {
+        crypto_refreshing = false;
+        ESP_LOGE(TAG, "failed to start crypto refresh task");
+    } else {
+        crypto_refresh_last_started_us = now;
+    }
+}
+
 bool network_take_city_saved(void) {
     const bool saved = city_saved;
     city_saved = false;
@@ -113,6 +148,7 @@ static void initial_sync_task(void *argument) {
     }
     network_request_weather_refresh();
     while (weather_refreshing) vTaskDelay(pdMS_TO_TICKS(100));
+    network_request_crypto_refresh();
     initial_sync_completed = true;
     vTaskDelete(NULL);
 }
@@ -671,6 +707,12 @@ bool network_get_weather(weather_snapshot_t *weather) {
     return true;
 }
 bool network_weather_is_refreshing(void) { return weather_refreshing; }
+bool network_get_crypto_quote(unsigned int index, crypto_quote_t *quote) {
+    if (quote == NULL || index >= sizeof(latest_crypto_quotes) / sizeof(latest_crypto_quotes[0]) || !latest_crypto_quotes[index].valid) return false;
+    *quote = latest_crypto_quotes[index];
+    return true;
+}
+bool network_crypto_is_refreshing(void) { return crypto_refreshing; }
 const char *network_setup_ssid(void) { return setup_ap_ssid; }
 bool network_local_url(char *buffer, size_t buffer_size) {
     if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;

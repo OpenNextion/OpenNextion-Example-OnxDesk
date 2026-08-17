@@ -202,18 +202,39 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     add_channel_nav(screen, PAGE_WEATHER);
 }
 
-static void render_crypto(lv_obj_t *screen) {
-    add_header(screen, "BTC/USDT");
-    lv_obj_t *coin = label_new(screen, "BTC", &lv_font_montserrat_16, COLOR_ORANGE);
+static void render_crypto(lv_obj_t *screen, const navigation_t *navigation) {
+    static const char *symbols[] = { "BTC", "ETH", "SOL" };
+    const unsigned int index = navigation == NULL ? 0 : navigation->crypto_index % 3;
+    crypto_quote_t quote = {0};
+    const bool available = network_get_crypto_quote(index, &quote);
+    char pair[12];
+    snprintf(pair, sizeof(pair), "%s/USDT", symbols[index]);
+    add_header(screen, pair);
+    lv_obj_t *coin = label_new(screen, symbols[index], &lv_font_montserrat_16, COLOR_ORANGE);
     lv_obj_align(coin, LV_ALIGN_TOP_LEFT, 30, 54);
-    lv_obj_t *price = label_new(screen, "$67,432", &lv_font_montserrat_32, COLOR_PRIMARY);
+    char price_text[20] = "--";
+    if (available) {
+        if (quote.last_price >= 1000) snprintf(price_text, sizeof(price_text), "$%.0f", quote.last_price);
+        else snprintf(price_text, sizeof(price_text), "$%.2f", quote.last_price);
+    }
+    lv_obj_t *price = label_new(screen, price_text, &lv_font_montserrat_32, COLOR_PRIMARY);
     lv_obj_align(price, LV_ALIGN_CENTER, 0, -28);
-    lv_obj_t *change = label_new(screen, "▲ +2.34%   +$1,542", &lv_font_montserrat_16, COLOR_GREEN);
+    char change_text[20] = "Waiting for Binance";
+    uint32_t change_color = COLOR_MUTED;
+    if (available) {
+        snprintf(change_text, sizeof(change_text), "24H %+.2f%%", quote.change_percent);
+        change_color = quote.change_percent >= 0 ? COLOR_GREEN : COLOR_RED;
+    }
+    lv_obj_t *change = label_new(screen, change_text, &lv_font_montserrat_16, change_color);
     lv_obj_align(change, LV_ALIGN_CENTER, 0, 2);
-    lv_obj_t *range = label_new(screen, "24h", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_t *range = label_new(screen, available ? "Binance spot - 24H" : network_crypto_is_refreshing() ? "Refreshing Binance..." : "Binance unavailable", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(range, LV_ALIGN_CENTER, 0, 52);
-    lv_obj_t *selector = label_new(screen, "BTC     ETH     SOL", &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_align(selector, LV_ALIGN_CENTER, 0, 78);
+    for (int i = 0; i < 3; i++) {
+        lv_obj_t *selector = label_new(screen, symbols[i], &lv_font_montserrat_14, (unsigned int)i == index ? COLOR_TEAL : COLOR_SECONDARY);
+        lv_obj_align(selector, LV_ALIGN_CENTER, (i - 1) * 58, 78);
+    }
+    lv_obj_t *hint = label_new(screen, "Rotate to change coin", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_CRYPTO);
 }
 
@@ -507,7 +528,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
     switch (navigation->page) {
         case PAGE_CLOCK: render_clock(screen, settings); break;
         case PAGE_WEATHER: render_weather(screen, navigation, settings); break;
-        case PAGE_CRYPTO: render_crypto(screen); break;
+        case PAGE_CRYPTO: render_crypto(screen, navigation); break;
         case PAGE_MARKETS: render_markets(screen, settings); break;
         case PAGE_NEWS_HOME: render_news_home(screen, navigation); break;
         case PAGE_SETTINGS: render_settings(screen, settings); break;
