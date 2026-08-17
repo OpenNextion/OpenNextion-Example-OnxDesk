@@ -43,6 +43,7 @@ typedef struct {
     news_category_t news_category;
     unsigned int selected_index;
     unsigned int crypto_index;
+    bool crypto_selecting;
     settings_menu_item_t settings_item;
     bool weather_forecast;
     bool city_setup_show_qr;

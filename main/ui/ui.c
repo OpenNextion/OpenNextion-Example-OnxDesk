@@ -230,10 +230,11 @@ static void render_crypto(lv_obj_t *screen, const navigation_t *navigation) {
     lv_obj_t *range = label_new(screen, available ? "Binance spot - 24H" : network_crypto_is_refreshing() ? "Refreshing Binance..." : "Binance unavailable", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(range, LV_ALIGN_CENTER, 0, 52);
     for (int i = 0; i < 3; i++) {
-        lv_obj_t *selector = label_new(screen, symbols[i], &lv_font_montserrat_14, (unsigned int)i == index ? COLOR_TEAL : COLOR_SECONDARY);
+        const uint32_t selector_color = (unsigned int)i == index ? (navigation != NULL && navigation->crypto_selecting ? COLOR_PRIMARY : COLOR_TEAL) : COLOR_SECONDARY;
+        lv_obj_t *selector = label_new(screen, symbols[i], &lv_font_montserrat_14, selector_color);
         lv_obj_align(selector, LV_ALIGN_CENTER, (i - 1) * 58, 78);
     }
-    lv_obj_t *hint = label_new(screen, "Rotate to change coin", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_t *hint = label_new(screen, navigation != NULL && navigation->crypto_selecting ? "Rotate - Press to confirm" : "Press to choose coin", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_CRYPTO);
 }

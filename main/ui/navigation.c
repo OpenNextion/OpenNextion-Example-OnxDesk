@@ -14,7 +14,7 @@ void navigation_init(navigation_t *navigation) {
 }
 
 void navigation_rotate(navigation_t *navigation, int steps) {
-    if (navigation->page == PAGE_CRYPTO) {
+    if (navigation->page == PAGE_CRYPTO && navigation->crypto_selecting) {
         navigation->crypto_index = (unsigned int)wrap_index((int)navigation->crypto_index + steps, 3);
     } else if (navigation->page == PAGE_NEWS_LIST) {
         navigation->selected_index = (unsigned int)wrap_index((int)navigation->selected_index + steps, 8);
@@ -30,6 +30,8 @@ void navigation_rotate(navigation_t *navigation, int steps) {
 void navigation_short_press(navigation_t *navigation) {
     if (navigation->page == PAGE_WEATHER) {
         navigation->weather_forecast = !navigation->weather_forecast;
+    } else if (navigation->page == PAGE_CRYPTO) {
+        navigation->crypto_selecting = !navigation->crypto_selecting;
     } else if (navigation->page == PAGE_NEWS_HOME) {
         navigation->parent_page = PAGE_NEWS_HOME;
         navigation->page = PAGE_NEWS_CATEGORY_PICKER;
@@ -64,6 +66,12 @@ void navigation_short_press(navigation_t *navigation) {
 bool navigation_long_press(navigation_t *navigation) {
     if (navigation->page == PAGE_PROVISIONING || navigation->page == PAGE_LOADING) return false;
     switch (navigation->page) {
+        case PAGE_CRYPTO:
+            if (navigation->crypto_selecting) {
+                navigation->crypto_selecting = false;
+                return true;
+            }
+            return false;
         case PAGE_NEWS_QR: navigation->page = PAGE_NEWS_LIST; return true;
         case PAGE_NEWS_LIST: navigation->page = PAGE_NEWS_CATEGORY_PICKER; return true;
         case PAGE_NEWS_CATEGORY_PICKER: navigation->page = PAGE_NEWS_HOME; return true;
