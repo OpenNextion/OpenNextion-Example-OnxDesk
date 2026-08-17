@@ -29,10 +29,11 @@ static void advance_encoder_sensitivity(app_settings_t *settings) {
     ESP_LOGI(TAG, "encoder sensitivity changed to %u", settings->encoder_step);
 }
 
-static bool market_configuration_needed(const app_settings_t *settings) {
+static bool market_configuration_needed(const app_settings_t *settings, const navigation_t *navigation) {
     if (!settings_has_market_key(settings)) return true;
     market_quote_t quote = {0};
-    return !network_market_is_refreshing() && !network_get_market_quote(0, &quote);
+    const unsigned int index = navigation == NULL ? 0 : navigation->market_index % 3;
+    return !network_market_is_refreshing() && !network_get_market_quote(index, &quote);
 }
 
 void app_main(void) {
@@ -95,7 +96,7 @@ void app_main(void) {
         } else if (event.type == INPUT_EVENT_KEY_SHORT_PRESS) {
             if (navigation.page == PAGE_SETTINGS_MENU && navigation.settings_item == SETTINGS_SENSITIVITY) {
                 advance_encoder_sensitivity(&settings);
-            } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings)) {
+            } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings, &navigation)) {
                 navigation.parent_page = PAGE_MARKETS;
                 navigation.settings_item = SETTINGS_FINNHUB;
                 navigation.page = PAGE_CONFIG_URL;

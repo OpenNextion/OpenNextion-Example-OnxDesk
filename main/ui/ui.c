@@ -408,7 +408,7 @@ static void render_crypto(lv_obj_t *screen, const navigation_t *navigation) {
     add_channel_nav(screen, PAGE_CRYPTO);
 }
 
-static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
+static void render_markets(lv_obj_t *screen, const navigation_t *navigation, const app_settings_t *settings) {
     if (settings == NULL || !settings_has_market_key(settings)) {
         add_header(screen, "MARKETS");
         lv_obj_t *title = label_new(screen, "Market data setup", &lv_font_montserrat_20, COLOR_PRIMARY);
@@ -419,10 +419,15 @@ static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
         add_channel_nav(screen, PAGE_MARKETS);
         return;
     }
+    static const char *titles[] = { "DOW JONES", "NASDAQ 100", "S&P 500" };
+    static const char *symbols[] = { "DIA", "QQQ", "SPY" };
+    const unsigned int index = navigation == NULL ? 0 : navigation->market_index % 3;
     market_quote_t quote = {0};
-    const bool available = network_get_market_quote(0, &quote);
-    add_header(screen, "DOW JONES");
-    lv_obj_t *symbol = label_new(screen, "DIA - ETF proxy", &lv_font_montserrat_12, COLOR_MUTED);
+    const bool available = network_get_market_quote(index, &quote);
+    add_header(screen, titles[index]);
+    char symbol_text[32];
+    snprintf(symbol_text, sizeof(symbol_text), "%s - ETF proxy", symbols[index]);
+    lv_obj_t *symbol = label_new(screen, symbol_text, &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(symbol, LV_ALIGN_TOP_MID, 0, 42);
     char price_text[20] = "--";
     if (available) snprintf(price_text, sizeof(price_text), "%.0f", quote.value);
@@ -442,8 +447,13 @@ static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
         lv_obj_t *setup_hint = label_new(screen, "Press to update Finnhub key", &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(setup_hint, LV_ALIGN_CENTER, 0, 66);
     }
-    lv_obj_t *selector = label_new(screen, "DIA     QQQ     SPY", &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_align(selector, LV_ALIGN_CENTER, 0, available || network_market_is_refreshing() ? 78 : 86);
+    for (int i = 0; i < 3; i++) {
+        const uint32_t selector_color = (unsigned int)i == index ?
+            (navigation != NULL && navigation->market_selecting ? COLOR_PRIMARY : COLOR_TEAL) : COLOR_SECONDARY;
+        lv_obj_t *selector = label_new(screen, symbols[i], &lv_font_montserrat_14, selector_color);
+        lv_obj_align(selector, LV_ALIGN_CENTER, (i - 1) * 58,
+                     available || network_market_is_refreshing() ? 78 : 86);
+    }
     add_channel_nav(screen, PAGE_MARKETS);
 }
 
@@ -705,7 +715,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_CLOCK: render_clock(screen, settings); break;
         case PAGE_WEATHER: render_weather(screen, navigation, settings); break;
         case PAGE_CRYPTO: render_crypto(screen, navigation); break;
-        case PAGE_MARKETS: render_markets(screen, settings); break;
+        case PAGE_MARKETS: render_markets(screen, navigation, settings); break;
         case PAGE_NEWS_HOME: render_news_home(screen, navigation); break;
         case PAGE_SETTINGS: render_settings(screen, settings); break;
         case PAGE_NEWS_CATEGORY_PICKER: render_news_picker(screen, navigation); break;
