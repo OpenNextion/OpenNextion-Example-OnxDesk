@@ -502,16 +502,20 @@ static void add_focus_indicator(lv_obj_t *screen, const navigation_t *navigation
     if (navigation == NULL || !navigation->focus_running || navigation->focus_duration_seconds == 0 ||
         navigation->page == PAGE_FOCUS) return;
     lv_obj_t *ring = lv_arc_create(screen);
-    lv_obj_set_size(ring, 22, 22);
-    lv_obj_set_pos(ring, 200, 16);
+    /* Keep this inside the physical round viewport; the square canvas corners
+     * are clipped by the GC9A01N panel's circular visible area. */
+    lv_obj_set_size(ring, 28, 28);
+    lv_obj_set_pos(ring, 174, 38);
     lv_arc_set_range(ring, 0, (int)navigation->focus_duration_seconds);
     lv_arc_set_value(ring, (int)navigation->focus_remaining_seconds);
     lv_obj_remove_style(ring, NULL, LV_PART_KNOB);
-    lv_obj_set_style_arc_width(ring, 3, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(ring, 4, LV_PART_MAIN);
     lv_obj_set_style_arc_color(ring, lv_color_hex(COLOR_MUTED), LV_PART_MAIN);
-    lv_obj_set_style_arc_width(ring, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(ring, 4, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(ring, lv_color_hex(COLOR_ORANGE), LV_PART_INDICATOR);
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t *center = panel_new(screen, 186, 50, 5, 5, COLOR_ORANGE, LV_OPA_COVER);
+    lv_obj_set_style_radius(center, LV_RADIUS_CIRCLE, 0);
 }
 
 static const char *encoder_sensitivity_name(const app_settings_t *settings) {
