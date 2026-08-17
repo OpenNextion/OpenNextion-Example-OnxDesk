@@ -52,6 +52,7 @@ static void send_event(input_event_type_t type) {
 static void input_poll_task(void *argument) {
     (void)argument;
     bool key_down = false;
+    bool key_long_press_sent = false;
     bool boot_down = false;
     bool boot_reset_sent = false;
     int64_t key_started_us = 0;
@@ -64,10 +65,14 @@ static void input_poll_task(void *argument) {
 
         if (key_pressed && !key_down) {
             key_down = true;
+            key_long_press_sent = false;
             key_started_us = now;
         } else if (!key_pressed && key_down) {
             key_down = false;
-            send_event((now - key_started_us >= KEY_LONG_PRESS_MS * 1000LL) ? INPUT_EVENT_KEY_LONG_PRESS : INPUT_EVENT_KEY_SHORT_PRESS);
+            if (!key_long_press_sent) send_event(INPUT_EVENT_KEY_SHORT_PRESS);
+        } else if (key_pressed && !key_long_press_sent && now - key_started_us >= KEY_LONG_PRESS_MS * 1000LL) {
+            key_long_press_sent = true;
+            send_event(INPUT_EVENT_KEY_LONG_PRESS);
         }
 
         if (boot_pressed && !boot_down) {
