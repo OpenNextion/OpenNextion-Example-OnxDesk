@@ -32,14 +32,22 @@ static volatile bool time_synced;
 static volatile bool weather_refreshing;
 static volatile bool city_saved;
 static volatile bool captive_dns_active;
+static volatile bool captive_dns_running;
 static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
 static bool pending_station_config_valid;
+static bool wifi_started;
+static bool setup_ap_active;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
 static char setup_ap_ssid[sizeof(((wifi_ap_config_t *)0)->ssid)];
 static char station_ip[16];
 static app_settings_t *active_settings;
 static weather_snapshot_t latest_weather;
+static esp_netif_t *setup_ap_netif;
+
+static esp_err_t enable_setup_ap(void);
+static void disable_setup_ap(void);
+static void advertise_captive_portal(esp_netif_t *netif);
 
 static void apply_utc_offset(int utc_offset_seconds) {
     const int offset_minutes = utc_offset_seconds / 60;
@@ -226,6 +234,7 @@ static void dns_redirect_task(void *argument) {
     const int socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
     if (socket_fd < 0) {
         ESP_LOGE(TAG, "cannot create captive DNS socket");
+        captive_dns_running = false;
         vTaskDelete(NULL);
         return;
     }
@@ -233,6 +242,7 @@ static void dns_redirect_task(void *argument) {
     if (bind(socket_fd, (struct sockaddr *)&address, sizeof(address)) != 0) {
         ESP_LOGE(TAG, "cannot bind captive DNS socket");
         close(socket_fd);
+        captive_dns_running = false;
         vTaskDelete(NULL);
         return;
     }
@@ -250,6 +260,7 @@ static void dns_redirect_task(void *argument) {
         if (reply_len > 0) sendto(socket_fd, reply, reply_len, 0, (struct sockaddr *)&client, client_len);
     }
     close(socket_fd);
+    captive_dns_running = false;
     ESP_LOGI(TAG, "captive DNS redirect stopped after station connection");
     vTaskDelete(NULL);
 }
@@ -544,12 +555,16 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
             connect_requested = false;
             connection_failed = true;
             ESP_LOGE(TAG, "Wi-Fi connection failed after %u retries", MAX_CONNECT_RETRIES);
+            if (enable_setup_ap() == ESP_OK) {
+                ESP_LOGI(TAG, "Wi-Fi setup ready: connect to %s and open http://%s", setup_ap_ssid, SETUP_PAGE_IP);
+            }
         }
     } else if (base == IP_EVENT && event == IP_EVENT_STA_GOT_IP) {
         const ip_event_got_ip_t *got_ip = data;
         if (got_ip != NULL) ip4addr_ntoa_r((const ip4_addr_t *)&got_ip->ip_info.ip, station_ip, sizeof(station_ip));
         connected = true;
         captive_dns_active = false;
+        disable_setup_ap();
         connect_requested = false;
         connection_failed = false;
         connection_retries = 0;
@@ -558,16 +573,47 @@ static void network_event_handler(void *arg, esp_event_base_t base, int32_t even
     }
 }
 
-static void start_softap(void) {
+static esp_err_t start_captive_dns(void) {
+    if (captive_dns_running) return ESP_OK;
+    captive_dns_active = true;
+    captive_dns_running = true;
+    if (xTaskCreate(dns_redirect_task, "captive_dns", 4096, NULL, 5, NULL) != pdPASS) {
+        captive_dns_running = false;
+        captive_dns_active = false;
+        ESP_LOGE(TAG, "failed to start captive DNS redirect");
+        return ESP_ERR_NO_MEM;
+    }
+    return ESP_OK;
+}
+
+static esp_err_t enable_setup_ap(void) {
+    if (setup_ap_netif == NULL) return ESP_ERR_INVALID_STATE;
     wifi_config_t ap_config = {0};
     strlcpy((char *)ap_config.ap.ssid, setup_ap_ssid, sizeof(ap_config.ap.ssid));
     ap_config.ap.ssid_len = strlen(setup_ap_ssid);
     ap_config.ap.channel = 1;
     ap_config.ap.max_connection = 4;
     ap_config.ap.authmode = WIFI_AUTH_OPEN;
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_APSTA), TAG, "enable setup access point");
+    ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_AP, &ap_config), TAG, "configure setup access point");
+    if (!wifi_started) {
+        ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "start Wi-Fi");
+        wifi_started = true;
+    }
+    advertise_captive_portal(setup_ap_netif);
+    setup_ap_active = true;
+    return start_captive_dns();
+}
+
+static void disable_setup_ap(void) {
+    if (!setup_ap_active) return;
+    const esp_err_t error = esp_wifi_set_mode(WIFI_MODE_STA);
+    if (error != ESP_OK) {
+        ESP_LOGW(TAG, "could not disable setup access point: %s", esp_err_to_name(error));
+        return;
+    }
+    setup_ap_active = false;
+    ESP_LOGI(TAG, "setup access point disabled after station connection");
 }
 
 static void advertise_captive_portal(esp_netif_t *netif) {
@@ -585,30 +631,29 @@ esp_err_t network_init(app_settings_t *settings) {
     ESP_RETURN_ON_ERROR(settings_get_setup_ssid(setup_ap_ssid, sizeof(setup_ap_ssid)), TAG, "create setup Wi-Fi name");
     ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "initialize network interface");
     ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "create event loop");
-    esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
+    setup_ap_netif = esp_netif_create_default_wifi_ap();
     esp_netif_t *station_netif = esp_netif_create_default_wifi_sta();
-    if (ap_netif == NULL || station_netif == NULL) return ESP_ERR_NO_MEM;
+    if (setup_ap_netif == NULL || station_netif == NULL) return ESP_ERR_NO_MEM;
 
     wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
     ESP_RETURN_ON_ERROR(esp_wifi_init(&config), TAG, "initialize Wi-Fi");
     ESP_RETURN_ON_ERROR(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, network_event_handler, NULL), TAG, "register Wi-Fi events");
     ESP_RETURN_ON_ERROR(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, network_event_handler, NULL), TAG, "register IP event");
-    start_softap();
-    advertise_captive_portal(ap_netif);
     start_setup_server();
-    captive_dns_active = true;
-    if (xTaskCreate(dns_redirect_task, "captive_dns", 4096, NULL, 5, NULL) != pdPASS) {
-        ESP_LOGE(TAG, "failed to start captive DNS redirect");
-        return ESP_ERR_NO_MEM;
-    }
 
     wifi_config_t saved_station = {0};
     ESP_RETURN_ON_ERROR(esp_wifi_get_config(WIFI_IF_STA, &saved_station), TAG, "read saved Wi-Fi settings");
     if (saved_station.sta.ssid[0] != '\0') {
+        ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "enable station Wi-Fi");
+        ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "start station Wi-Fi");
+        wifi_started = true;
         connect_requested = true;
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_connect());
+        ESP_LOGI(TAG, "saved Wi-Fi found; reconnecting without setup access point");
+    } else {
+        ESP_RETURN_ON_ERROR(enable_setup_ap(), TAG, "start Wi-Fi setup access point");
+        ESP_LOGI(TAG, "Wi-Fi setup ready: connect to %s and open http://%s", setup_ap_ssid, SETUP_PAGE_IP);
     }
-    ESP_LOGI(TAG, "Wi-Fi setup ready: connect to %s and open http://%s", setup_ap_ssid, SETUP_PAGE_IP);
     return ESP_OK;
 }
 
