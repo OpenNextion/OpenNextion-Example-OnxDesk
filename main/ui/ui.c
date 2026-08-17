@@ -635,7 +635,7 @@ static void render_wifi_test(lv_obj_t *screen) {
     lv_obj_t *spinner = lv_spinner_create(screen);
     lv_obj_set_size(spinner, 42, 42);
     lv_obj_align(spinner, LV_ALIGN_CENTER, 0, -20);
-    lv_spinner_set_anim_params(spinner, 850, 250);
+    lv_spinner_set_anim_params(spinner, 1800, 250);
     lv_obj_set_style_arc_width(spinner, 4, LV_PART_MAIN);
     lv_obj_set_style_arc_color(spinner, lv_color_hex(COLOR_SURFACE), LV_PART_MAIN);
     lv_obj_set_style_arc_width(spinner, 4, LV_PART_INDICATOR);
