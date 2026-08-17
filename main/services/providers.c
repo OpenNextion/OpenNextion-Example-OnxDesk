@@ -1,4 +1,5 @@
 #include "providers.h"
+#include "settings.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,6 +210,36 @@ provider_status_t binance_refresh_quote(const char *symbol, crypto_quote_t *quot
     free(response);
     if (!valid || price <= 0) return PROVIDER_RESPONSE_ERROR;
     *quote = (crypto_quote_t){ .valid = true, .last_price = price, .change_percent = change };
+    return PROVIDER_READY;
+}
+
+provider_status_t finnhub_refresh_quote(const char *symbol, const char *api_key, market_quote_t *quote) {
+    if (symbol == NULL || symbol[0] == '\0' || api_key == NULL || api_key[0] == '\0' || quote == NULL) return PROVIDER_NOT_CONFIGURED;
+    char encoded_symbol[48];
+    char encoded_key[sizeof(((app_settings_t *)0)->finnhub_api_key) * 3 + 1];
+    char url[512];
+    if (!url_encode(symbol, encoded_symbol, sizeof(encoded_symbol)) || !url_encode(api_key, encoded_key, sizeof(encoded_key)) ||
+        snprintf(url, sizeof(url), "https://finnhub.io/api/v1/quote?symbol=%s&token=%s", encoded_symbol, encoded_key) >= (int)sizeof(url)) {
+        return PROVIDER_RESPONSE_ERROR;
+    }
+    char *response = calloc(1, HTTP_RESPONSE_MAX);
+    if (response == NULL) return PROVIDER_NETWORK_ERROR;
+    const provider_status_t status = https_get(url, response, HTTP_RESPONSE_MAX);
+    if (status != PROVIDER_READY) {
+        free(response);
+        return status;
+    }
+    cJSON *root = cJSON_Parse(response);
+    double value = 0, change = 0, updated_at = 0;
+    const bool valid = cJSON_IsObject(root) && json_number(root, "c", &value) && json_number(root, "dp", &change) &&
+                       json_number(root, "t", &updated_at);
+    cJSON_Delete(root);
+    free(response);
+    if (!valid || value <= 0) return PROVIDER_RESPONSE_ERROR;
+    quote->valid = true;
+    quote->value = (float)value;
+    quote->change_percent = (float)change;
+    quote->updated_at = (int64_t)updated_at;
     return PROVIDER_READY;
 }
 

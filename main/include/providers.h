@@ -36,6 +36,7 @@ typedef struct {
 } crypto_quote_t;
 
 typedef struct {
+    bool valid;
     const char *symbol;
     const char *name;
     float value;
@@ -66,4 +67,5 @@ provider_status_t open_meteo_search_city(const char *query, city_candidate_t *re
 provider_status_t open_meteo_refresh_weather(double latitude, double longitude,
                                               weather_snapshot_t *weather);
 provider_status_t binance_refresh_quote(const char *symbol, crypto_quote_t *quote);
+provider_status_t finnhub_refresh_quote(const char *symbol, const char *api_key, market_quote_t *quote);
 provider_status_t gdelt_refresh_category(const char *category);

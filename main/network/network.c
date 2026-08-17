@@ -22,6 +22,7 @@
 #define MAX_FORM_BODY 256
 #define MAX_CONNECT_RETRIES 5
 #define CRYPTO_REFRESH_INTERVAL_US (60LL * 1000 * 1000)
+#define MARKET_REFRESH_INTERVAL_US (5LL * 60 * 1000 * 1000)
 
 static const char *TAG = "network";
 static volatile bool connected;
@@ -33,7 +34,9 @@ static volatile bool initial_sync_completed;
 static volatile bool time_synced;
 static volatile bool weather_refreshing;
 static volatile bool crypto_refreshing;
+static volatile bool market_refreshing;
 static int64_t crypto_refresh_last_started_us;
+static int64_t market_refresh_last_started_us;
 static volatile bool city_saved;
 static volatile bool captive_dns_active;
 static volatile bool captive_dns_running;
@@ -49,6 +52,7 @@ static char station_ip[16];
 static app_settings_t *active_settings;
 static weather_snapshot_t latest_weather;
 static crypto_quote_t latest_crypto_quotes[3];
+static market_quote_t latest_market_quotes[3];
 static esp_netif_t *setup_ap_netif;
 
 static esp_err_t enable_setup_ap(void);
@@ -113,13 +117,45 @@ static void crypto_refresh_task(void *argument) {
 
 void network_request_crypto_refresh(void) {
     const int64_t now = esp_timer_get_time();
-    if (!connected || crypto_refreshing || now - crypto_refresh_last_started_us < CRYPTO_REFRESH_INTERVAL_US) return;
+    if (!connected || crypto_refreshing ||
+        (crypto_refresh_last_started_us != 0 && now - crypto_refresh_last_started_us < CRYPTO_REFRESH_INTERVAL_US)) return;
     crypto_refreshing = true;
     if (xTaskCreate(crypto_refresh_task, "crypto_refresh", 7168, NULL, 5, NULL) != pdPASS) {
         crypto_refreshing = false;
         ESP_LOGE(TAG, "failed to start crypto refresh task");
     } else {
         crypto_refresh_last_started_us = now;
+    }
+}
+
+static void market_refresh_task(void *argument) {
+    (void)argument;
+    static const char *symbols[] = { "^DJI", "^IXIC", "^GSPC" };
+    static const char *names[] = { "Dow Jones", "Nasdaq", "S&P 500" };
+    for (size_t index = 0; index < sizeof(symbols) / sizeof(symbols[0]); index++) {
+        market_quote_t refreshed = { .symbol = symbols[index], .name = names[index] };
+        const provider_status_t status = finnhub_refresh_quote(symbols[index], active_settings->finnhub_api_key, &refreshed);
+        if (status == PROVIDER_READY) {
+            latest_market_quotes[index] = refreshed;
+            ESP_LOGI(TAG, "Finnhub quote refreshed for %s", symbols[index]);
+        } else {
+            ESP_LOGW(TAG, "Finnhub quote refresh failed for %s: %d", symbols[index], status);
+        }
+    }
+    market_refreshing = false;
+    vTaskDelete(NULL);
+}
+
+void network_request_market_refresh(void) {
+    const int64_t now = esp_timer_get_time();
+    if (!connected || active_settings == NULL || !settings_has_market_key(active_settings) || market_refreshing ||
+        (market_refresh_last_started_us != 0 && now - market_refresh_last_started_us < MARKET_REFRESH_INTERVAL_US)) return;
+    market_refreshing = true;
+    if (xTaskCreate(market_refresh_task, "market_refresh", 7168, NULL, 5, NULL) != pdPASS) {
+        market_refreshing = false;
+        ESP_LOGE(TAG, "failed to start market refresh task");
+    } else {
+        market_refresh_last_started_us = now;
     }
 }
 
@@ -149,6 +185,7 @@ static void initial_sync_task(void *argument) {
     network_request_weather_refresh();
     while (weather_refreshing) vTaskDelay(pdMS_TO_TICKS(100));
     network_request_crypto_refresh();
+    network_request_market_refresh();
     initial_sync_completed = true;
     vTaskDelete(NULL);
 }
@@ -533,6 +570,7 @@ static esp_err_t market_key_post_handler(httpd_req_t *req) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not save market key");
         return error;
     }
+    network_request_market_refresh();
     httpd_resp_set_type(req, "text/plain");
     return httpd_resp_sendstr(req, key[0] == '\0' ? "Finnhub key cleared." : "Finnhub key saved on this device.");
 }
@@ -713,6 +751,12 @@ bool network_get_crypto_quote(unsigned int index, crypto_quote_t *quote) {
     return true;
 }
 bool network_crypto_is_refreshing(void) { return crypto_refreshing; }
+bool network_get_market_quote(unsigned int index, market_quote_t *quote) {
+    if (quote == NULL || index >= sizeof(latest_market_quotes) / sizeof(latest_market_quotes[0]) || !latest_market_quotes[index].valid) return false;
+    *quote = latest_market_quotes[index];
+    return true;
+}
+bool network_market_is_refreshing(void) { return market_refreshing; }
 const char *network_setup_ssid(void) { return setup_ap_ssid; }
 bool network_local_url(char *buffer, size_t buffer_size) {
     if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;
