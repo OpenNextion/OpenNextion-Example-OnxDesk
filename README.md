@@ -23,7 +23,7 @@ The firmware does not scrape finance websites. Market API keys stay in the devic
 
 On the Weather channel, a short press switches between current conditions and the three-day forecast.
 
-On Focus, the default 25-minute duration is a Pomodoro. Rotate while stopped in five-minute steps for a 1–120 minute countdown (turning below five minutes selects the one-minute test duration), then press to start or pause. When it reaches zero, OnxDesk opens the Focus page and flashes red and white for six seconds; press once to stop the alert, then again to restart the selected duration.
+On Focus, the default 25-minute duration is a Pomodoro. Rotate normally to move between channels. Press to enter time adjustment, rotate in five-minute steps for a 1–120 minute countdown (turning below five minutes selects the one-minute test duration), then press to confirm. Hold the knob to start or pause the timer. A small orange progress ring appears on other top-level pages while a timer runs. When it reaches zero, OnxDesk opens the Focus page and alternates red and white for six seconds; either encoder press dismisses the alert without starting another timer.
 
 Settings → **Home pages** can hide Weather, Crypto, Markets, and Focus from the top-level rotation. Clock and Settings remain available so the device always has a home screen and a way to re-enable pages. Page order stays fixed in this release.
 

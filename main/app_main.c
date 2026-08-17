@@ -46,6 +46,7 @@ static void focus_toggle(navigation_t *navigation) {
         return;
     }
     if (navigation->focus_remaining_seconds == 0) navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
+    navigation->focus_adjusting = false;
     navigation->focus_deadline_us = now + (int64_t)navigation->focus_remaining_seconds * 1000000;
     navigation->focus_running = true;
 }
@@ -158,8 +159,8 @@ void app_main(void) {
                 if (settings_toggle_optional_home_page(&settings, selected_optional_home_page(&navigation))) {
                     ESP_ERROR_CHECK(settings_save(&settings));
                 }
-            } else if (navigation.page == PAGE_FOCUS) {
-                focus_toggle(&navigation);
+            } else if (navigation.page == PAGE_FOCUS && !navigation.focus_running) {
+                navigation.focus_adjusting = !navigation.focus_adjusting;
             } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings, &navigation)) {
                 navigation.parent_page = PAGE_MARKETS;
                 navigation.settings_item = SETTINGS_FINNHUB;
@@ -168,7 +169,14 @@ void app_main(void) {
                 navigation_short_press(&navigation);
             }
         } else if (event.type == INPUT_EVENT_KEY_LONG_PRESS) {
-            navigation_long_press(&navigation);
+            if (navigation.focus_alert_until_us != 0) {
+                focus_dismiss_alert(&navigation);
+            } else if (navigation.page == PAGE_FOCUS) {
+                if (navigation.focus_adjusting) navigation.focus_adjusting = false;
+                else focus_toggle(&navigation);
+            } else {
+                navigation_long_press(&navigation);
+            }
         } else if (event.type == INPUT_EVENT_BOOT_FACTORY_RESET) {
             ESP_LOGW(TAG, "BOOT held for 3 seconds; clearing all local settings");
             ESP_ERROR_CHECK(settings_factory_reset());

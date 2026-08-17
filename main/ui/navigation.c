@@ -28,7 +28,7 @@ void navigation_rotate(navigation_t *navigation, int steps, const app_settings_t
         navigation->settings_item = (settings_menu_item_t)wrap_index((int)navigation->settings_item + steps, SETTINGS_MENU_COUNT);
     } else if (navigation->page == PAGE_HOME_PAGES) {
         navigation->home_pages_item = (unsigned int)wrap_index((int)navigation->home_pages_item + steps, 4);
-    } else if (navigation->page == PAGE_FOCUS && !navigation->focus_running) {
+    } else if (navigation->page == PAGE_FOCUS && navigation->focus_adjusting && !navigation->focus_running) {
         int duration = (int)(navigation->focus_remaining_seconds == 0 ? navigation->focus_duration_seconds : navigation->focus_remaining_seconds);
         const int direction = steps < 0 ? -1 : 1;
         for (int move = 0; move < (steps < 0 ? -steps : steps); move++) {

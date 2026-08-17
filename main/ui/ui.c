@@ -476,21 +476,42 @@ static void render_focus(lv_obj_t *screen, const navigation_t *navigation) {
     const uint32_t seconds = remaining % 60;
     const bool pomodoro = navigation->focus_duration_seconds == 25 * 60;
     const bool alerting = navigation->focus_alert_until_us != 0;
-    if (alerting && navigation->focus_alert_flash_on) {
-        lv_obj_set_style_bg_color(screen, lv_color_hex(COLOR_RED), 0);
+    const uint32_t alert_background = navigation->focus_alert_flash_on ? COLOR_RED : COLOR_PRIMARY;
+    const uint32_t alert_foreground = navigation->focus_alert_flash_on ? COLOR_PRIMARY : COLOR_RED;
+    if (alerting) {
+        lv_obj_set_style_bg_color(screen, lv_color_hex(alert_background), 0);
         lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
     }
-    add_header(screen, pomodoro ? "POMODORO" : "COUNTDOWN");
+    lv_obj_t *heading = label_new(screen, alerting ? "TIME'S UP" : pomodoro ? "POMODORO" : "COUNTDOWN",
+                                  &lv_font_montserrat_16, alerting ? alert_foreground : COLOR_TEAL);
+    lv_obj_align(heading, LV_ALIGN_TOP_MID, 0, 18);
     char time_text[12];
     snprintf(time_text, sizeof(time_text), "%02u:%02u", (unsigned)minutes, (unsigned)seconds);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48,
-                                     alerting && navigation->focus_alert_flash_on ? COLOR_PRIMARY : remaining == 0 ? COLOR_RED : COLOR_PRIMARY);
+                                     alerting ? alert_foreground : remaining == 0 ? COLOR_RED : COLOR_PRIMARY);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -14);
-    const char *state = alerting ? "TIME'S UP - press to stop" : remaining == 0 ? "DONE - press to restart" : navigation->focus_running ? "RUNNING - press to pause" : "Rotate to set - press to start";
+    const char *state = alerting ? "PRESS TO STOP" : navigation->focus_adjusting ? "Rotate - press to confirm" :
+                        remaining == 0 ? "Press to set - hold to start" : navigation->focus_running ? "RUNNING - hold to pause" : "Press to set - hold to start";
     lv_obj_t *state_label = label_new(screen, state, &lv_font_montserrat_12,
-                                      alerting && navigation->focus_alert_flash_on ? COLOR_PRIMARY : navigation->focus_running ? COLOR_TEAL : COLOR_SECONDARY);
+                                      alerting ? alert_foreground : navigation->focus_adjusting || navigation->focus_running ? COLOR_TEAL : COLOR_SECONDARY);
     lv_obj_align(state_label, LV_ALIGN_CENTER, 0, 36);
     add_channel_nav(screen, PAGE_FOCUS);
+}
+
+static void add_focus_indicator(lv_obj_t *screen, const navigation_t *navigation) {
+    if (navigation == NULL || !navigation->focus_running || navigation->focus_duration_seconds == 0 ||
+        navigation->page == PAGE_FOCUS) return;
+    lv_obj_t *ring = lv_arc_create(screen);
+    lv_obj_set_size(ring, 22, 22);
+    lv_obj_set_pos(ring, 200, 16);
+    lv_arc_set_range(ring, 0, (int)navigation->focus_duration_seconds);
+    lv_arc_set_value(ring, (int)navigation->focus_remaining_seconds);
+    lv_obj_remove_style(ring, NULL, LV_PART_KNOB);
+    lv_obj_set_style_arc_width(ring, 3, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(ring, lv_color_hex(COLOR_MUTED), LV_PART_MAIN);
+    lv_obj_set_style_arc_width(ring, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(ring, lv_color_hex(COLOR_ORANGE), LV_PART_INDICATOR);
+    lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
 }
 
 static const char *encoder_sensitivity_name(const app_settings_t *settings) {
@@ -724,5 +745,6 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_HOME_PAGES: render_home_pages(screen, navigation, settings); break;
         default: break;
     }
+    add_focus_indicator(screen, navigation);
     lvgl_port_unlock();
 }
