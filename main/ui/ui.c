@@ -326,22 +326,19 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     const bool available = network_get_weather(&weather);
     add_weather_icon(screen, 88, 28, 64, 42, available ? weather.weather_code : 0, available);
     char temperature_text[12] = "--";
-    char condition_text[48] = "Set location in local setup";
     if (available) {
         snprintf(temperature_text, sizeof(temperature_text), "%.0f", weather.temperature_c);
-        snprintf(condition_text, sizeof(condition_text), "Feels %.0f", weather.apparent_temperature_c);
-    } else if (settings != NULL && settings->city[0]) {
-        strlcpy(condition_text, network_weather_is_refreshing() ? "Refreshing weather..." : "Weather unavailable; retrying", sizeof(condition_text));
     }
     lv_obj_t *temperature = label_new(screen, temperature_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(temperature, LV_ALIGN_CENTER, 0, -8);
     lv_obj_update_layout(temperature);
     add_celsius_unit(screen, lv_obj_get_x(temperature) + lv_obj_get_width(temperature) + 3, lv_obj_get_y(temperature) + 7, 15, COLOR_PRIMARY);
-    lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_align(condition, LV_ALIGN_CENTER, 0, 36);
-    if (available) {
-        lv_obj_update_layout(condition);
-        add_celsius_unit(screen, lv_obj_get_x(condition) + lv_obj_get_width(condition) + 2, lv_obj_get_y(condition) + 3, 8, COLOR_SECONDARY);
+    if (!available) {
+        const char *status = settings != NULL && settings->city[0]
+                                 ? (network_weather_is_refreshing() ? "Refreshing weather..." : "Weather unavailable; retrying")
+                                 : "Set location in local setup";
+        lv_obj_t *condition = label_new(screen, status, &lv_font_montserrat_14, COLOR_SECONDARY);
+        lv_obj_align(condition, LV_ALIGN_CENTER, 0, 36);
     }
     if (available) {
         lv_obj_t *humidity_label = label_new(screen, "HUM", &lv_font_montserrat_12, COLOR_MUTED);
