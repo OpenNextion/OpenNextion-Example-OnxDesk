@@ -30,9 +30,12 @@ void navigation_rotate(navigation_t *navigation, int steps, const app_settings_t
         navigation->home_pages_item = (unsigned int)wrap_index((int)navigation->home_pages_item + steps, 4);
     } else if (navigation->page == PAGE_FOCUS && !navigation->focus_running) {
         int duration = (int)(navigation->focus_remaining_seconds == 0 ? navigation->focus_duration_seconds : navigation->focus_remaining_seconds);
-        duration += steps * 60;
-        if (duration < 60) duration = 60;
-        if (duration > 120 * 60) duration = 120 * 60;
+        const int direction = steps < 0 ? -1 : 1;
+        for (int move = 0; move < (steps < 0 ? -steps : steps); move++) {
+            if (direction < 0) duration = duration <= 5 * 60 ? 60 : duration - 5 * 60;
+            else duration = duration < 5 * 60 ? 5 * 60 : duration + 5 * 60;
+            if (duration > 120 * 60) duration = 120 * 60;
+        }
         navigation->focus_duration_seconds = (uint32_t)duration;
         navigation->focus_remaining_seconds = (uint32_t)duration;
     } else if (navigation->page <= PAGE_SETTINGS) {
