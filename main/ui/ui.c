@@ -606,19 +606,18 @@ static void render_provisioning(lv_obj_t *screen) {
 }
 
 static void render_wifi_test(lv_obj_t *screen) {
-    add_arc_text(screen, "WI-FI TEST", &lv_font_montserrat_20, COLOR_TEAL, 96, 205, 335);
-    lv_obj_t *title = label_new(screen, network_connection_failed() ? "Network unavailable" : "Testing saved Wi-Fi", &lv_font_montserrat_20,
-                                network_connection_failed() ? COLOR_RED : COLOR_PRIMARY);
-    lv_obj_set_width(title, 190);
-    lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -15);
-    lv_obj_t *detail = label_new(screen, network_connection_failed() ? "Opening Wi-Fi setup" : "Checking connection", &lv_font_montserrat_14,
-                                 network_connection_failed() ? COLOR_RED : COLOR_SECONDARY);
-    lv_obj_align(detail, LV_ALIGN_CENTER, 0, 20);
-    lv_obj_t *footer = label_new(screen, "Setup opens only if connection fails", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_set_width(footer, 180);
-    lv_obj_set_style_text_align(footer, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -28);
+    const bool failed = network_connection_failed();
+    const uint32_t color = failed ? COLOR_RED : COLOR_TEAL;
+    lv_obj_t *spinner = lv_spinner_create(screen);
+    lv_obj_set_size(spinner, 42, 42);
+    lv_obj_align(spinner, LV_ALIGN_CENTER, 0, -20);
+    lv_spinner_set_anim_params(spinner, 850, 250);
+    lv_obj_set_style_arc_width(spinner, 4, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(spinner, lv_color_hex(COLOR_SURFACE), LV_PART_MAIN);
+    lv_obj_set_style_arc_width(spinner, 4, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(spinner, lv_color_hex(color), LV_PART_INDICATOR);
+    lv_obj_t *status = label_new(screen, failed ? "Wi-Fi connection failed" : "Connecting to Wi-Fi…", &lv_font_montserrat_16, color);
+    lv_obj_align(status, LV_ALIGN_CENTER, 0, 28);
 }
 
 static void loading_row(lv_obj_t *screen, int y, const char *label, const char *status, uint32_t color) {
@@ -632,15 +631,12 @@ static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
     const bool time_ready = network_time_is_synced();
     const bool sync_finished = network_initial_sync_complete();
     add_arc_text(screen, "STARTING ONXDESK", &lv_font_montserrat_14, COLOR_TEAL, 100, 205, 335);
-    add_arc_text(screen, "PREPARING YOUR DESK", &lv_font_montserrat_12, COLOR_PRIMARY, 74, 205, 335);
     loading_row(screen, 96, "Wi-Fi", "Connected", COLOR_GREEN);
     loading_row(screen, 124, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing…", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
     weather_snapshot_t weather = {0};
     const bool weather_ready = network_get_weather(&weather);
     loading_row(screen, 152, "Weather", weather_ready ? "Loaded" : settings != NULL && settings->city[0] ? "Loading…" : "City not set", weather_ready ? COLOR_GREEN : settings != NULL && settings->city[0] ? COLOR_TEAL : COLOR_MUTED);
     loading_row(screen, 180, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
-    lv_obj_t *footer = label_new(screen, sync_finished ? "Opening Clock" : "Opening Clock after time setup", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -24);
 }
 
 static void add_color_swatch(lv_obj_t *parent, lv_color_t color, int x, int y) {
