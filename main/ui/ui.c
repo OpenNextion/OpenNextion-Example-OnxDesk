@@ -87,6 +87,23 @@ static void add_wifi_signal(lv_obj_t *screen, int x) {
     }
 }
 
+static void add_celsius_unit(lv_obj_t *screen, int x, int y, int size, uint32_t color) {
+    const int dot_size = size < 9 ? 2 : size / 4;
+    lv_obj_t *dot = panel_new(screen, x + size / 5, y, dot_size, dot_size, color, LV_OPA_COVER);
+    lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+
+    lv_obj_t *letter_c = lv_arc_create(screen);
+    lv_obj_set_size(letter_c, size, size);
+    lv_obj_set_pos(letter_c, x, y + dot_size + 1);
+    lv_arc_set_bg_angles(letter_c, 0, 0);
+    lv_arc_set_angles(letter_c, 42, 318);
+    lv_obj_remove_style(letter_c, NULL, LV_PART_KNOB);
+    lv_obj_set_style_arc_width(letter_c, size < 10 ? 1 : 2, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(letter_c, lv_color_hex(color), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_opa(letter_c, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_clear_flag(letter_c, LV_OBJ_FLAG_CLICKABLE);
+}
+
 static void clock_city_name(const app_settings_t *settings, char *name, size_t name_size) {
     const char *source = settings != NULL && settings->city[0] != '\0' ? settings->city : "Set city";
     size_t length = strcspn(source, ",");
@@ -148,10 +165,12 @@ static void render_weather_forecast(lv_obj_t *screen) {
         const char *condition_text = available ? (weather.daily_weather_code[i] <= 3 ? "CLEAR" : weather.daily_weather_code[i] <= 48 ? "CLOUDY" : weather.daily_weather_code[i] <= 67 ? "RAIN" : "STORM") : "--";
         lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(condition, LV_ALIGN_TOP_MID, 0, y + 8);
-        char temperatures[20] = "--C / --C";
-        if (available) snprintf(temperatures, sizeof(temperatures), "%.0fC / %.0fC", weather.daily_high_c[i], weather.daily_low_c[i]);
+        char temperatures[20] = "-- / --";
+        if (available) snprintf(temperatures, sizeof(temperatures), "%.0f / %.0f", weather.daily_high_c[i], weather.daily_low_c[i]);
         lv_obj_t *temperature = label_new(screen, temperatures, &lv_font_montserrat_12, COLOR_SECONDARY);
         lv_obj_set_pos(temperature, 150, y + 8);
+        lv_obj_update_layout(temperature);
+        add_celsius_unit(screen, 153 + lv_obj_get_width(temperature), y + 9, 7, COLOR_SECONDARY);
     }
     add_channel_nav(screen, PAGE_WEATHER);
 }
@@ -166,18 +185,24 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     const char *weather_name = !available ? "WAIT" : weather.weather_code <= 3 ? "SUN" : weather.weather_code <= 48 ? "CLOUD" : weather.weather_code <= 67 ? "RAIN" : "STORM";
     lv_obj_t *icon = label_new(screen, weather_name, &lv_font_montserrat_16, COLOR_TEAL);
     lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 34);
-    char temperature_text[12] = "--C";
+    char temperature_text[12] = "--";
     char condition_text[48] = "Set location in local setup";
     if (available) {
-        snprintf(temperature_text, sizeof(temperature_text), "%.0fC", weather.temperature_c);
-        snprintf(condition_text, sizeof(condition_text), "Feels %.0fC - %s", weather.apparent_temperature_c, weather_name);
+        snprintf(temperature_text, sizeof(temperature_text), "%.0f", weather.temperature_c);
+        snprintf(condition_text, sizeof(condition_text), "Feels %.0f", weather.apparent_temperature_c);
     } else if (settings != NULL && settings->city[0]) {
         strlcpy(condition_text, network_weather_is_refreshing() ? "Refreshing weather..." : "Weather unavailable; retrying", sizeof(condition_text));
     }
     lv_obj_t *temperature = label_new(screen, temperature_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(temperature, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_update_layout(temperature);
+    add_celsius_unit(screen, lv_obj_get_x(temperature) + lv_obj_get_width(temperature) + 3, lv_obj_get_y(temperature) + 7, 15, COLOR_PRIMARY);
     lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_align(condition, LV_ALIGN_CENTER, 0, 36);
+    if (available) {
+        lv_obj_update_layout(condition);
+        add_celsius_unit(screen, lv_obj_get_x(condition) + lv_obj_get_width(condition) + 2, lv_obj_get_y(condition) + 3, 8, COLOR_SECONDARY);
+    }
     if (available) {
         lv_obj_t *humidity_label = label_new(screen, "HUM", &lv_font_montserrat_12, COLOR_MUTED);
         lv_obj_align(humidity_label, LV_ALIGN_TOP_MID, -82, 98);
@@ -192,9 +217,11 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
         lv_obj_t *wind_value = label_new(screen, wind_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 82, 113);
         char range_text[32];
-        snprintf(range_text, sizeof(range_text), "HIGH %.0fC    LOW %.0fC", weather.daily_high_c[0], weather.daily_low_c[0]);
+        snprintf(range_text, sizeof(range_text), "HIGH %.0f    LOW %.0f", weather.daily_high_c[0], weather.daily_low_c[0]);
         lv_obj_t *range = label_new(screen, range_text, &lv_font_montserrat_14, COLOR_SECONDARY);
         lv_obj_align(range, LV_ALIGN_CENTER, 0, 65);
+        lv_obj_update_layout(range);
+        add_celsius_unit(screen, lv_obj_get_x(range) + lv_obj_get_width(range) + 2, lv_obj_get_y(range) + 3, 8, COLOR_SECONDARY);
     }
     add_channel_nav(screen, PAGE_WEATHER);
 }
