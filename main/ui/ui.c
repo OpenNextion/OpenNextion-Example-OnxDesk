@@ -233,8 +233,6 @@ static void render_crypto(lv_obj_t *screen, const navigation_t *navigation) {
         lv_obj_t *selector = label_new(screen, symbols[i], &lv_font_montserrat_14, selector_color);
         lv_obj_align(selector, LV_ALIGN_CENTER, (i - 1) * 58, 78);
     }
-    lv_obj_t *hint = label_new(screen, navigation != NULL && navigation->crypto_selecting ? "Rotate - Press to confirm" : "Press to choose coin", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_CRYPTO);
 }
 
@@ -359,8 +357,6 @@ static void render_settings(lv_obj_t *screen, const app_settings_t *settings) {
         lv_obj_t *detail = label_new(screen, details[i], &lv_font_montserrat_12, COLOR_MUTED);
         lv_obj_set_pos(detail, 112, 56 + i * 29);
     }
-    lv_obj_t *hint = label_new(screen, "Press to edit controls", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_SETTINGS);
 }
 
@@ -378,12 +374,6 @@ static void render_settings_menu(lv_obj_t *screen, const navigation_t *navigatio
             lv_obj_set_pos(value, 157, y + 4);
         }
     }
-    const bool opens_config = navigation->settings_item == SETTINGS_WIFI || navigation->settings_item == SETTINGS_FINNHUB;
-    const char *hint_text = navigation->settings_item == SETTINGS_SENSITIVITY ? "Press: Low · Medium · High" :
-                            navigation->settings_item == SETTINGS_CITY ? "Press: change city" :
-                            opens_config ? "Press: open local setup URL" : "Rotate · Press · Long press back";
-    lv_obj_t *hint = label_new(screen, hint_text, &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_SETTINGS);
 }
 
