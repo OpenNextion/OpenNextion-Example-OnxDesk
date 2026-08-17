@@ -182,20 +182,18 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_align(condition, LV_ALIGN_CENTER, 0, 36);
     if (available) {
-        panel_new(screen, 18, 91, 58, 40, COLOR_SURFACE, LV_OPA_70);
-        panel_new(screen, 164, 91, 58, 40, COLOR_SURFACE, LV_OPA_70);
         lv_obj_t *humidity_label = label_new(screen, "HUM", &lv_font_montserrat_12, COLOR_MUTED);
-        lv_obj_align(humidity_label, LV_ALIGN_TOP_MID, -64, 98);
+        lv_obj_align(humidity_label, LV_ALIGN_TOP_MID, -82, 98);
         char humidity_text[8];
         snprintf(humidity_text, sizeof(humidity_text), "%d%%", weather.humidity_percent);
         lv_obj_t *humidity_value = label_new(screen, humidity_text, &lv_font_montserrat_16, COLOR_TEAL);
-        lv_obj_align(humidity_value, LV_ALIGN_TOP_MID, -64, 111);
+        lv_obj_align(humidity_value, LV_ALIGN_TOP_MID, -82, 111);
         lv_obj_t *wind_label = label_new(screen, "WIND", &lv_font_montserrat_12, COLOR_MUTED);
-        lv_obj_align(wind_label, LV_ALIGN_TOP_MID, 64, 98);
+        lv_obj_align(wind_label, LV_ALIGN_TOP_MID, 82, 98);
         char wind_text[12];
         snprintf(wind_text, sizeof(wind_text), "%.0f km/h", weather.wind_speed_kmh);
         lv_obj_t *wind_value = label_new(screen, wind_text, &lv_font_montserrat_12, COLOR_TEAL);
-        lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 64, 113);
+        lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 82, 113);
         char range_text[32];
         snprintf(range_text, sizeof(range_text), "HIGH %.0fC    LOW %.0fC", weather.daily_high_c[0], weather.daily_low_c[0]);
         lv_obj_t *range = label_new(screen, range_text, &lv_font_montserrat_14, COLOR_SECONDARY);
