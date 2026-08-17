@@ -625,6 +625,9 @@ static void start_setup_server(void) {
      * returns.  Keep the portal responsive while allowing that request to run.
      */
     config.stack_size = 12288;
+    /* The default server configuration allows only 8 URI handlers.  The
+     * setup/configuration service currently exposes 9 endpoints. */
+    config.max_uri_handlers = 12;
     config.lru_purge_enable = true;
     httpd_handle_t server = NULL;
     ESP_ERROR_CHECK(httpd_start(&server, &config));
