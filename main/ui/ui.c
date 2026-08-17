@@ -21,6 +21,10 @@
 #define COLOR_GREEN    0x4ADE80
 #define COLOR_RED      0xF87171
 #define COLOR_ORANGE   0xF7931A
+#define COLOR_SUN      0xF5C453
+#define COLOR_CLOUD    0xF7F8FF
+#define COLOR_RAIN     0x5F9EFF
+#define COLOR_SNOW     0xBDE7FF
 
 static lv_display_t *lvgl_display;
 
@@ -104,6 +108,144 @@ static void add_celsius_unit(lv_obj_t *screen, int x, int y, int size, uint32_t 
     lv_obj_clear_flag(letter_c, LV_OBJ_FLAG_CLICKABLE);
 }
 
+typedef enum {
+    WEATHER_ICON_SUN,
+    WEATHER_ICON_PARTLY_CLOUDY,
+    WEATHER_ICON_CLOUDY,
+    WEATHER_ICON_FOG,
+    WEATHER_ICON_DRIZZLE,
+    WEATHER_ICON_RAIN,
+    WEATHER_ICON_SNOW,
+    WEATHER_ICON_STORM,
+    WEATHER_ICON_HAIL,
+} weather_icon_t;
+
+static weather_icon_t weather_icon_for_code(int code) {
+    switch (code) {
+        case 0: return WEATHER_ICON_SUN;
+        case 1:
+        case 2: return WEATHER_ICON_PARTLY_CLOUDY;
+        case 3: return WEATHER_ICON_CLOUDY;
+        case 45:
+        case 48: return WEATHER_ICON_FOG;
+        case 51:
+        case 53:
+        case 55:
+        case 56:
+        case 57: return WEATHER_ICON_DRIZZLE;
+        case 61:
+        case 63:
+        case 65:
+        case 66:
+        case 67:
+        case 80:
+        case 81:
+        case 82: return WEATHER_ICON_RAIN;
+        case 71:
+        case 73:
+        case 75:
+        case 77:
+        case 85:
+        case 86: return WEATHER_ICON_SNOW;
+        case 96:
+        case 99: return WEATHER_ICON_HAIL;
+        case 95: return WEATHER_ICON_STORM;
+        default: return WEATHER_ICON_CLOUDY;
+    }
+}
+
+static void weather_circle(lv_obj_t *screen, int x, int y, int size, uint32_t color) {
+    lv_obj_t *circle = panel_new(screen, x, y, size, size, color, LV_OPA_COVER);
+    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
+}
+
+static void add_sun(lv_obj_t *screen, int x, int y, int size) {
+    const int core = size * 12 / 25;
+    const int ray = size < 28 ? 2 : 3;
+    const int ray_length = size * 3 / 25;
+    const int center = size / 2;
+    weather_circle(screen, x + (size - core) / 2, y + (size - core) / 2, core, COLOR_SUN);
+    panel_new(screen, x + center - ray / 2, y, ray, ray_length, COLOR_SUN, LV_OPA_COVER);
+    panel_new(screen, x + center - ray / 2, y + size - ray_length, ray, ray_length, COLOR_SUN, LV_OPA_COVER);
+    panel_new(screen, x, y + center - ray / 2, ray_length, ray, COLOR_SUN, LV_OPA_COVER);
+    panel_new(screen, x + size - ray_length, y + center - ray / 2, ray_length, ray, COLOR_SUN, LV_OPA_COVER);
+    weather_circle(screen, x + ray_length, y + ray_length, ray, COLOR_SUN);
+    weather_circle(screen, x + size - ray_length - ray, y + ray_length, ray, COLOR_SUN);
+    weather_circle(screen, x + ray_length, y + size - ray_length - ray, ray, COLOR_SUN);
+    weather_circle(screen, x + size - ray_length - ray, y + size - ray_length - ray, ray, COLOR_SUN);
+}
+
+static void add_cloud(lv_obj_t *screen, int x, int y, int size) {
+    const int small = size * 9 / 25;
+    const int large = size * 13 / 25;
+    weather_circle(screen, x + size * 3 / 25, y + size * 10 / 25, small, COLOR_CLOUD);
+    weather_circle(screen, x + size * 9 / 25, y + size * 3 / 25, large, COLOR_CLOUD);
+    weather_circle(screen, x + size * 15 / 25, y + size * 10 / 25, small, COLOR_CLOUD);
+    lv_obj_t *base = panel_new(screen, x + size * 3 / 25, y + size * 14 / 25, size * 19 / 25, size * 8 / 25, COLOR_CLOUD, LV_OPA_COVER);
+    lv_obj_set_style_radius(base, size / 5, 0);
+}
+
+static void add_rain_drops(lv_obj_t *screen, int x, int y, int size, int count, uint32_t color) {
+    const int drop_width = size < 28 ? 3 : 4;
+    const int drop_height = size < 28 ? 5 : 7;
+    const int spacing = count == 2 ? size / 3 : size / 4;
+    for (int i = 0; i < count; i++) {
+        lv_obj_t *drop = panel_new(screen, x + spacing * (i + 1) - drop_width / 2, y + ((i & 1) ? 2 : 0), drop_width, drop_height, color, LV_OPA_COVER);
+        lv_obj_set_style_radius(drop, LV_RADIUS_CIRCLE, 0);
+    }
+}
+
+static void add_weather_icon(lv_obj_t *screen, int x, int y, int size, int weather_code, bool available) {
+    if (!available) {
+        lv_obj_t *waiting = label_new(screen, "--", &lv_font_montserrat_16, COLOR_MUTED);
+        lv_obj_align_to(waiting, screen, LV_ALIGN_TOP_LEFT, x + size / 4, y + size / 4);
+        return;
+    }
+
+    switch (weather_icon_for_code(weather_code)) {
+        case WEATHER_ICON_SUN:
+            add_sun(screen, x, y, size);
+            break;
+        case WEATHER_ICON_PARTLY_CLOUDY:
+            add_sun(screen, x, y, size * 3 / 4);
+            add_cloud(screen, x + size / 4, y + size / 3, size * 3 / 4);
+            break;
+        case WEATHER_ICON_CLOUDY:
+            add_cloud(screen, x, y + size / 8, size);
+            break;
+        case WEATHER_ICON_FOG:
+            add_cloud(screen, x, y, size);
+            panel_new(screen, x + size / 8, y + size * 3 / 4, size * 3 / 4, 2, COLOR_SECONDARY, LV_OPA_COVER);
+            panel_new(screen, x + size / 5, y + size * 7 / 8, size * 3 / 5, 2, COLOR_SECONDARY, LV_OPA_COVER);
+            break;
+        case WEATHER_ICON_DRIZZLE:
+            add_cloud(screen, x, y, size);
+            add_rain_drops(screen, x, y + size * 3 / 4, size, 2, COLOR_RAIN);
+            break;
+        case WEATHER_ICON_RAIN:
+            add_cloud(screen, x, y, size);
+            add_rain_drops(screen, x, y + size * 3 / 4, size, 3, COLOR_RAIN);
+            break;
+        case WEATHER_ICON_SNOW:
+            add_cloud(screen, x, y, size);
+            add_rain_drops(screen, x, y + size * 3 / 4, size, 3, COLOR_SNOW);
+            break;
+        case WEATHER_ICON_STORM: {
+            add_cloud(screen, x, y, size);
+            lv_obj_t *bolt = panel_new(screen, x + size * 11 / 25, y + size * 17 / 25, size / 7, size * 8 / 25, COLOR_SUN, LV_OPA_COVER);
+            lv_obj_set_style_transform_pivot_x(bolt, size / 14, 0);
+            lv_obj_set_style_transform_pivot_y(bolt, size * 4 / 25, 0);
+            lv_obj_set_style_transform_rotation(bolt, 250, 0);
+            break;
+        }
+        case WEATHER_ICON_HAIL:
+            add_cloud(screen, x, y, size);
+            add_rain_drops(screen, x, y + size * 3 / 4, size, 2, COLOR_RAIN);
+            weather_circle(screen, x + size * 17 / 25, y + size * 4 / 5, size < 28 ? 3 : 5, COLOR_SNOW);
+            break;
+    }
+}
+
 static void clock_city_name(const app_settings_t *settings, char *name, size_t name_size) {
     const char *source = settings != NULL && settings->city[0] != '\0' ? settings->city : "Set city";
     size_t length = strcspn(source, ",");
@@ -162,9 +304,7 @@ static void render_weather_forecast(lv_obj_t *screen) {
         panel_new(screen, 24, y, 192, 28, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
         lv_obj_t *day = label_new(screen, days[i], &lv_font_montserrat_12, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
         lv_obj_set_pos(day, 34, y + 8);
-        const char *condition_text = available ? (weather.daily_weather_code[i] <= 3 ? "CLEAR" : weather.daily_weather_code[i] <= 48 ? "CLOUDY" : weather.daily_weather_code[i] <= 67 ? "RAIN" : "STORM") : "--";
-        lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_12, COLOR_TEAL);
-        lv_obj_align(condition, LV_ALIGN_TOP_MID, 0, y + 8);
+        add_weather_icon(screen, 105, y + 4, 20, available ? weather.daily_weather_code[i] : 0, available);
         char temperatures[20] = "-- / --";
         if (available) snprintf(temperatures, sizeof(temperatures), "%.0f / %.0f", weather.daily_high_c[i], weather.daily_low_c[i]);
         lv_obj_t *temperature = label_new(screen, temperatures, &lv_font_montserrat_12, COLOR_SECONDARY);
@@ -182,9 +322,7 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     }
     weather_snapshot_t weather = {0};
     const bool available = network_get_weather(&weather);
-    const char *weather_name = !available ? "WAIT" : weather.weather_code <= 3 ? "SUN" : weather.weather_code <= 48 ? "CLOUD" : weather.weather_code <= 67 ? "RAIN" : "STORM";
-    lv_obj_t *icon = label_new(screen, weather_name, &lv_font_montserrat_16, COLOR_TEAL);
-    lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 34);
+    add_weather_icon(screen, 96, 25, 48, available ? weather.weather_code : 0, available);
     char temperature_text[12] = "--";
     char condition_text[48] = "Set location in local setup";
     if (available) {
