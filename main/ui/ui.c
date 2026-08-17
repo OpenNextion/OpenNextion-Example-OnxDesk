@@ -507,7 +507,7 @@ static void render_news_home(lv_obj_t *screen, const navigation_t *navigation) {
             copy_news_text(headline, sizeof(headline), item.title);
             copy_news_text(domain, sizeof(domain), item.source_domain);
         } else {
-            strlcpy(headline, network_news_is_refreshing() ? "Loading GDELT headlines..." : "Headlines unavailable", sizeof(headline));
+            strlcpy(headline, network_news_is_refreshing() ? "Loading headlines..." : "Headlines unavailable", sizeof(headline));
             strlcpy(domain, network_news_is_refreshing() ? "" : "Check Wi-Fi and try again", sizeof(domain));
         }
         news_row(screen, 51 + (int)category * 54, categories[category], headline, domain,
@@ -544,7 +544,7 @@ static void render_news_list(lv_obj_t *screen, const navigation_t *navigation) {
             copy_news_text(headline, sizeof(headline), item.title);
             copy_news_text(domain, sizeof(domain), item.source_domain);
         } else {
-            strlcpy(headline, network_news_is_refreshing() ? "Loading GDELT headlines..." : "No article available", sizeof(headline));
+            strlcpy(headline, network_news_is_refreshing() ? "Loading headlines..." : "No article available", sizeof(headline));
             strlcpy(domain, "", sizeof(domain));
         }
         news_row(screen, 53 + i * 38, i == 0 ? "SELECTED" : domain, headline,

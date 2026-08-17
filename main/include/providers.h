@@ -10,7 +10,7 @@
 #define NEWS_ITEMS_PER_CATEGORY 8
 #define NEWS_TITLE_MAX_LEN 160
 #define NEWS_DOMAIN_MAX_LEN 64
-#define NEWS_URL_MAX_LEN 384
+#define NEWS_URL_MAX_LEN 768
 
 typedef struct {
     char name[CITY_NAME_MAX_LEN];
@@ -72,5 +72,5 @@ provider_status_t open_meteo_refresh_weather(double latitude, double longitude,
                                               weather_snapshot_t *weather);
 provider_status_t binance_refresh_quote(const char *symbol, crypto_quote_t *quote);
 provider_status_t finnhub_refresh_quote(const char *symbol, const char *api_key, market_quote_t *quote);
-provider_status_t gdelt_refresh_category(const char *query, news_item_t *items,
-                                         size_t items_capacity, size_t *item_count);
+provider_status_t google_news_refresh_category(const char *feed_url, news_item_t *items,
+                                               size_t items_capacity, size_t *item_count);

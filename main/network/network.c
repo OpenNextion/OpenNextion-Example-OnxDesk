@@ -176,9 +176,9 @@ void network_request_market_refresh(void) {
 static void news_refresh_task(void *argument) {
     (void)argument;
     static const char *queries[NEWS_CATEGORY_COUNT] = {
-        "sourcelang:english",
-        "sourcelang:english (business OR economy OR markets)",
-        "sourcelang:english (technology OR software OR \"artificial intelligence\")",
+        "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+        "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en",
+        "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en",
     };
     static const char *names[NEWS_CATEGORY_COUNT] = { "World", "Business", "Technology" };
     for (unsigned int category = 0; category < NEWS_CATEGORY_COUNT; category++) {
@@ -188,18 +188,16 @@ static void news_refresh_task(void *argument) {
             continue;
         }
         size_t count = 0;
-        const provider_status_t status = gdelt_refresh_category(queries[category], refreshed,
-                                                                  NEWS_ITEMS_PER_CATEGORY, &count);
+        const provider_status_t status = google_news_refresh_category(queries[category], refreshed,
+                                                                        NEWS_ITEMS_PER_CATEGORY, &count);
         if (status == PROVIDER_READY) {
             memcpy(latest_news[category], refreshed, sizeof(latest_news[category]));
-            ESP_LOGI(TAG, "GDELT %s news refreshed: %u articles", names[category], (unsigned)count);
+            ESP_LOGI(TAG, "Google News %s refreshed: %u articles", names[category], (unsigned)count);
         } else {
-            ESP_LOGW(TAG, "GDELT %s news refresh failed: %d", names[category], status);
+            ESP_LOGW(TAG, "Google News %s refresh failed: %d", names[category], status);
         }
         free(refreshed);
-        /* GDELT's public DOC endpoint asks clients to leave at least five seconds
-         * between requests. */
-        if (category + 1 < NEWS_CATEGORY_COUNT) vTaskDelay(pdMS_TO_TICKS(5500));
+        if (category + 1 < NEWS_CATEGORY_COUNT) vTaskDelay(pdMS_TO_TICKS(1000));
     }
     news_refreshing = false;
     vTaskDelete(NULL);
