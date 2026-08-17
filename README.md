@@ -10,7 +10,7 @@ An ESP-IDF and LVGL 9 desktop information display for the OpenNextion ONX2424G01
 | Weather | Open-Meteo | Select a city in the local setup page; no API key |
 | Crypto | Binance public spot market data | None; BTC, ETH, SOL are fixed initially |
 | Markets | Finnhub | User supplies a personal API key; Dow Jones, Nasdaq-100, S&P 500 ETF proxies |
-| Focus | Device-local Pomodoro and countdown timer | None; 25 minutes by default, adjustable from 5 to 120 minutes |
+| Focus | Device-local Pomodoro and countdown timer | None; 25 minutes by default, adjustable from 1 to 120 minutes |
 
 The firmware does not scrape finance websites. Market API keys stay in the device's NVS and must never be committed or printed to logs.
 
@@ -23,7 +23,7 @@ The firmware does not scrape finance websites. Market API keys stay in the devic
 
 On the Weather channel, a short press switches between current conditions and the three-day forecast.
 
-On Focus, the default 25-minute duration is a Pomodoro. Rotate while stopped for a 5–120 minute countdown, then press to start or pause. When it reaches zero, press to restart the selected duration.
+On Focus, the default 25-minute duration is a Pomodoro. Rotate while stopped for a 1–120 minute countdown, then press to start or pause. When it reaches zero, OnxDesk opens the Focus page and flashes red and white for six seconds; press once to stop the alert, then again to restart the selected duration.
 
 Settings → **Home pages** can hide Weather, Crypto, Markets, and Focus from the top-level rotation. Clock and Settings remain available so the device always has a home screen and a way to re-enable pages. Page order stays fixed in this release.
 

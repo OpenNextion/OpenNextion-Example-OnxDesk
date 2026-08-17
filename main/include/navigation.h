@@ -47,7 +47,9 @@ typedef struct {
     uint32_t focus_duration_seconds;
     uint32_t focus_remaining_seconds;
     int64_t focus_deadline_us;
+    int64_t focus_alert_until_us;
     bool focus_running;
+    bool focus_alert_flash_on;
 } navigation_t;
 
 void navigation_init(navigation_t *navigation);

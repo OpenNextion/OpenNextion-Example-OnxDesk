@@ -475,15 +475,20 @@ static void render_focus(lv_obj_t *screen, const navigation_t *navigation) {
     const uint32_t minutes = remaining / 60;
     const uint32_t seconds = remaining % 60;
     const bool pomodoro = navigation->focus_duration_seconds == 25 * 60;
+    const bool alerting = navigation->focus_alert_until_us != 0;
+    if (alerting && navigation->focus_alert_flash_on) {
+        lv_obj_set_style_bg_color(screen, lv_color_hex(COLOR_RED), 0);
+        lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
+    }
     add_header(screen, pomodoro ? "POMODORO" : "COUNTDOWN");
     char time_text[12];
     snprintf(time_text, sizeof(time_text), "%02u:%02u", (unsigned)minutes, (unsigned)seconds);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48,
-                                     remaining == 0 ? COLOR_RED : COLOR_PRIMARY);
+                                     alerting && navigation->focus_alert_flash_on ? COLOR_PRIMARY : remaining == 0 ? COLOR_RED : COLOR_PRIMARY);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -14);
-    const char *state = remaining == 0 ? "DONE - press to restart" : navigation->focus_running ? "RUNNING - press to pause" : "Rotate to set - press to start";
+    const char *state = alerting ? "TIME'S UP - press to stop" : remaining == 0 ? "DONE - press to restart" : navigation->focus_running ? "RUNNING - press to pause" : "Rotate to set - press to start";
     lv_obj_t *state_label = label_new(screen, state, &lv_font_montserrat_12,
-                                      navigation->focus_running ? COLOR_TEAL : COLOR_SECONDARY);
+                                      alerting && navigation->focus_alert_flash_on ? COLOR_PRIMARY : navigation->focus_running ? COLOR_TEAL : COLOR_SECONDARY);
     lv_obj_align(state_label, LV_ALIGN_CENTER, 0, 36);
     add_channel_nav(screen, PAGE_FOCUS);
 }

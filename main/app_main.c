@@ -56,8 +56,32 @@ static bool focus_update(navigation_t *navigation) {
     const uint32_t seconds = remaining > 0 ? (uint32_t)((remaining + 999999) / 1000000) : 0;
     if (seconds == navigation->focus_remaining_seconds) return false;
     navigation->focus_remaining_seconds = seconds;
-    if (seconds == 0) navigation->focus_running = false;
+    if (seconds == 0) {
+        navigation->focus_running = false;
+        navigation->focus_alert_until_us = esp_timer_get_time() + 6LL * 1000 * 1000;
+        navigation->focus_alert_flash_on = true;
+        navigation->page = PAGE_FOCUS;
+    }
     return true;
+}
+
+static bool focus_alert_update(navigation_t *navigation) {
+    if (navigation->focus_alert_until_us == 0) return false;
+    const int64_t now = esp_timer_get_time();
+    if (now >= navigation->focus_alert_until_us) {
+        navigation->focus_alert_until_us = 0;
+        navigation->focus_alert_flash_on = false;
+        return true;
+    }
+    const bool flash_on = ((now / 250000) & 1) == 0;
+    if (flash_on == navigation->focus_alert_flash_on) return false;
+    navigation->focus_alert_flash_on = flash_on;
+    return true;
+}
+
+static void focus_dismiss_alert(navigation_t *navigation) {
+    navigation->focus_alert_until_us = 0;
+    navigation->focus_alert_flash_on = false;
 }
 
 static home_page_t selected_optional_home_page(const navigation_t *navigation) {
@@ -92,7 +116,7 @@ void app_main(void) {
 
     input_event_t event;
     while (true) {
-        if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(250)) != pdTRUE) {
             const bool city_was_saved = network_take_city_saved();
             if ((navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_WIFI_TEST) && network_is_connected()) {
                 navigation.page = settings.city[0] == '\0' ? PAGE_CITY_SETUP : PAGE_LOADING;
@@ -116,16 +140,19 @@ void app_main(void) {
                 app_ui_render(&navigation, &settings);
             }
             const bool focus_changed = focus_update(&navigation);
+            const bool alert_changed = focus_alert_update(&navigation);
             if (navigation.page == PAGE_CRYPTO) network_request_crypto_refresh();
             if (navigation.page == PAGE_MARKETS) network_request_market_refresh();
             if (navigation.page == PAGE_CLOCK || navigation.page == PAGE_CRYPTO || navigation.page == PAGE_MARKETS ||
-                navigation.page == PAGE_FOCUS || focus_changed) app_ui_render(&navigation, &settings);
+                focus_changed || alert_changed) app_ui_render(&navigation, &settings);
             continue;
         }
         if (event.type == INPUT_EVENT_ROTATE) {
             navigation_rotate(&navigation, apply_encoder_sensitivity(event.value, settings.encoder_step), &settings);
         } else if (event.type == INPUT_EVENT_KEY_SHORT_PRESS) {
-            if (navigation.page == PAGE_SETTINGS_MENU && navigation.settings_item == SETTINGS_SENSITIVITY) {
+            if (navigation.focus_alert_until_us != 0) {
+                focus_dismiss_alert(&navigation);
+            } else if (navigation.page == PAGE_SETTINGS_MENU && navigation.settings_item == SETTINGS_SENSITIVITY) {
                 advance_encoder_sensitivity(&settings);
             } else if (navigation.page == PAGE_HOME_PAGES) {
                 if (settings_toggle_optional_home_page(&settings, selected_optional_home_page(&navigation))) {
