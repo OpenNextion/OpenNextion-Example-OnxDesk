@@ -134,8 +134,6 @@ static void render_weather_forecast(lv_obj_t *screen) {
         lv_obj_t *temperature = label_new(screen, temperatures, &lv_font_montserrat_12, COLOR_SECONDARY);
         lv_obj_set_pos(temperature, 150, y + 8);
     }
-    lv_obj_t *hint = label_new(screen, "Press for current weather", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_WEATHER);
 }
 
@@ -151,24 +149,36 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 34);
     char temperature_text[12] = "--°";
     char condition_text[48] = "Set location in local setup";
-    char details_text[64] = "Open Settings for city setup";
     if (available) {
         snprintf(temperature_text, sizeof(temperature_text), "%.0f°", weather.temperature_c);
         snprintf(condition_text, sizeof(condition_text), "Feels %.0f° · %s", weather.apparent_temperature_c, weather_name);
-        snprintf(details_text, sizeof(details_text), "Humidity %d%% · Wind %.0f km/h\\nH %.0f° · L %.0f°", weather.humidity_percent, weather.wind_speed_kmh, weather.daily_high_c[0], weather.daily_low_c[0]);
     } else if (settings != NULL && settings->city[0]) {
         strlcpy(condition_text, network_weather_is_refreshing() ? "Refreshing weather…" : "Weather unavailable; retrying", sizeof(condition_text));
-        strlcpy(details_text, "Open-Meteo · no API key", sizeof(details_text));
     }
     lv_obj_t *temperature = label_new(screen, temperature_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(temperature, LV_ALIGN_CENTER, 0, -8);
     lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_align(condition, LV_ALIGN_CENTER, 0, 30);
-    lv_obj_t *details = label_new(screen, details_text, &lv_font_montserrat_12, COLOR_SECONDARY);
-    lv_obj_set_style_text_align(details, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(details, LV_ALIGN_CENTER, 0, 58);
-    lv_obj_t *hint = label_new(screen, "Press for 3-day forecast", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
+    lv_obj_align(condition, LV_ALIGN_CENTER, 0, 36);
+    if (available) {
+        panel_new(screen, 18, 91, 58, 40, COLOR_SURFACE, LV_OPA_70);
+        panel_new(screen, 164, 91, 58, 40, COLOR_SURFACE, LV_OPA_70);
+        lv_obj_t *humidity_label = label_new(screen, "HUM", &lv_font_montserrat_12, COLOR_MUTED);
+        lv_obj_align(humidity_label, LV_ALIGN_TOP_MID, -64, 98);
+        char humidity_text[8];
+        snprintf(humidity_text, sizeof(humidity_text), "%d%%", weather.humidity_percent);
+        lv_obj_t *humidity_value = label_new(screen, humidity_text, &lv_font_montserrat_16, COLOR_TEAL);
+        lv_obj_align(humidity_value, LV_ALIGN_TOP_MID, -64, 111);
+        lv_obj_t *wind_label = label_new(screen, "WIND", &lv_font_montserrat_12, COLOR_MUTED);
+        lv_obj_align(wind_label, LV_ALIGN_TOP_MID, 64, 98);
+        char wind_text[12];
+        snprintf(wind_text, sizeof(wind_text), "%.0f km/h", weather.wind_speed_kmh);
+        lv_obj_t *wind_value = label_new(screen, wind_text, &lv_font_montserrat_12, COLOR_TEAL);
+        lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 64, 113);
+        char range_text[32];
+        snprintf(range_text, sizeof(range_text), "HIGH %.0f°    LOW %.0f°", weather.daily_high_c[0], weather.daily_low_c[0]);
+        lv_obj_t *range = label_new(screen, range_text, &lv_font_montserrat_14, COLOR_SECONDARY);
+        lv_obj_align(range, LV_ALIGN_CENTER, 0, 65);
+    }
     add_channel_nav(screen, PAGE_WEATHER);
 }
 
