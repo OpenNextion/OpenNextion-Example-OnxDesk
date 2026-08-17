@@ -479,7 +479,7 @@ static void render_news_picker(lv_obj_t *screen, const navigation_t *navigation)
         lv_obj_t *label = label_new(screen, categories[i], &lv_font_montserrat_16, selected ? COLOR_PRIMARY : COLOR_SECONDARY);
         lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 71 + i * 38);
     }
-    lv_obj_t *hint = label_new(screen, "Rotate · Press to open", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_t *hint = label_new(screen, "Rotate - Press to open", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
     add_channel_nav(screen, PAGE_NEWS_HOME);
 }
@@ -487,13 +487,13 @@ static void render_news_picker(lv_obj_t *screen, const navigation_t *navigation)
 static void render_news_list(lv_obj_t *screen, const navigation_t *navigation) {
     static const char *categories[] = { "WORLD", "BUSINESS", "TECHNOLOGY" };
     char title[32];
-    snprintf(title, sizeof(title), "› %s", categories[navigation->news_category]);
+    snprintf(title, sizeof(title), "> %s", categories[navigation->news_category]);
     add_header(screen, title);
     for (int i = 0; i < 4; i++) {
         const unsigned item = (navigation->selected_index + (unsigned)i) % 8;
         char row_title[42];
-        snprintf(row_title, sizeof(row_title), "News item %u · waiting for sync", item + 1);
-        news_row(screen, 53 + i * 38, i == 0 ? "SELECTED" : "", row_title, i == 0 ? "Press to display article QR" : "Source · time", i == 0);
+        snprintf(row_title, sizeof(row_title), "News item %u - waiting for sync", item + 1);
+        news_row(screen, 53 + i * 38, i == 0 ? "SELECTED" : "", row_title, i == 0 ? "Press to display article QR" : "Source - time", i == 0);
     }
     add_channel_nav(screen, PAGE_NEWS_HOME);
 }
@@ -525,7 +525,7 @@ static void render_settings(lv_obj_t *screen, const app_settings_t *settings) {
     const char *city = settings != NULL && settings->city[0] ? settings->city : "Not configured";
     const char *market = settings != NULL && settings_has_market_key(settings) ? "Configured" : "Not configured";
     const char *labels[] = { "WiFi", "City", "Sensitivity", "Finnhub Key", "About" };
-    const char *details[] = { "Local setup page", city, encoder_sensitivity_name(settings), market, "OnxDesk · ONX2424G013" };
+    const char *details[] = { "Local setup page", city, encoder_sensitivity_name(settings), market, "OnxDesk - ONX2424G013" };
     for (int i = 0; i < 5; i++) {
         panel_new(screen, 20, 50 + i * 29, 200, 24, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
         lv_obj_t *label = label_new(screen, labels[i], &lv_font_montserrat_14, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
@@ -619,7 +619,7 @@ static void render_provisioning(lv_obj_t *screen) {
     lv_obj_align(hint, LV_ALIGN_CENTER, 0, 20);
     lv_obj_t *address = label_new(screen, "192.168.4.1", &lv_font_montserrat_20, COLOR_PRIMARY);
     lv_obj_align(address, LV_ALIGN_CENTER, 0, 55);
-    lv_obj_t *footer = label_new(screen, failed ? "Check password and try again" : network_is_connecting() ? "Testing Wi-Fi connection…" : "A setup browser may open automatically", &lv_font_montserrat_12, failed ? COLOR_RED : COLOR_MUTED);
+    lv_obj_t *footer = label_new(screen, failed ? "Check password and try again" : network_is_connecting() ? "Testing Wi-Fi connection..." : "A setup browser may open automatically", &lv_font_montserrat_12, failed ? COLOR_RED : COLOR_MUTED);
     lv_obj_set_style_text_align(footer, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -22);
 }
@@ -635,7 +635,7 @@ static void render_wifi_test(lv_obj_t *screen) {
     lv_obj_set_style_arc_color(spinner, lv_color_hex(COLOR_SURFACE), LV_PART_MAIN);
     lv_obj_set_style_arc_width(spinner, 4, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(spinner, lv_color_hex(color), LV_PART_INDICATOR);
-    lv_obj_t *status = label_new(screen, failed ? "Wi-Fi connection failed" : "Connecting to Wi-Fi…", &lv_font_montserrat_16, color);
+    lv_obj_t *status = label_new(screen, failed ? "Wi-Fi connection failed" : "Connecting to Wi-Fi...", &lv_font_montserrat_16, color);
     lv_obj_align(status, LV_ALIGN_CENTER, 0, 28);
 }
 
@@ -651,10 +651,10 @@ static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
     const bool sync_finished = network_initial_sync_complete();
     add_arc_text(screen, "STARTING ONXDESK", &lv_font_montserrat_14, COLOR_TEAL, 100, 205, 335);
     loading_row(screen, 96, "Wi-Fi", "Connected", COLOR_GREEN);
-    loading_row(screen, 124, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing…", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
+    loading_row(screen, 124, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing...", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
     weather_snapshot_t weather = {0};
     const bool weather_ready = network_get_weather(&weather);
-    loading_row(screen, 152, "Weather", weather_ready ? "Loaded" : settings != NULL && settings->city[0] ? "Loading…" : "City not set", weather_ready ? COLOR_GREEN : settings != NULL && settings->city[0] ? COLOR_TEAL : COLOR_MUTED);
+    loading_row(screen, 152, "Weather", weather_ready ? "Loaded" : settings != NULL && settings->city[0] ? "Loading..." : "City not set", weather_ready ? COLOR_GREEN : settings != NULL && settings->city[0] ? COLOR_TEAL : COLOR_MUTED);
     loading_row(screen, 180, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
 }
 
