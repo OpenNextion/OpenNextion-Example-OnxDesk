@@ -29,6 +29,12 @@ static void advance_encoder_sensitivity(app_settings_t *settings) {
     ESP_LOGI(TAG, "encoder sensitivity changed to %u", settings->encoder_step);
 }
 
+static bool market_configuration_needed(const app_settings_t *settings) {
+    if (!settings_has_market_key(settings)) return true;
+    market_quote_t quote = {0};
+    return !network_market_is_refreshing() && !network_get_market_quote(0, &quote);
+}
+
 void app_main(void) {
     ESP_ERROR_CHECK(settings_init());
 
@@ -89,6 +95,10 @@ void app_main(void) {
         } else if (event.type == INPUT_EVENT_KEY_SHORT_PRESS) {
             if (navigation.page == PAGE_SETTINGS_MENU && navigation.settings_item == SETTINGS_SENSITIVITY) {
                 advance_encoder_sensitivity(&settings);
+            } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings)) {
+                navigation.parent_page = PAGE_MARKETS;
+                navigation.settings_item = SETTINGS_FINNHUB;
+                navigation.page = PAGE_CONFIG_URL;
             } else {
                 navigation_short_press(&navigation);
             }

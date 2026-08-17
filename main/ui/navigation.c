@@ -76,7 +76,7 @@ bool navigation_long_press(navigation_t *navigation) {
         case PAGE_NEWS_LIST: navigation->page = PAGE_NEWS_CATEGORY_PICKER; return true;
         case PAGE_NEWS_CATEGORY_PICKER: navigation->page = PAGE_NEWS_HOME; return true;
         case PAGE_DISPLAY_TEST: navigation->page = PAGE_SETTINGS_MENU; return true;
-        case PAGE_CONFIG_URL: navigation->page = PAGE_SETTINGS_MENU; return true;
+        case PAGE_CONFIG_URL: navigation->page = navigation->parent_page; return true;
         case PAGE_CITY_SETUP:
             if (navigation->city_setup_show_qr) {
                 navigation->city_setup_show_qr = false;

@@ -413,7 +413,7 @@ static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
         add_header(screen, "MARKETS");
         lv_obj_t *title = label_new(screen, "Market data setup", &lv_font_montserrat_20, COLOR_PRIMARY);
         lv_obj_align(title, LV_ALIGN_CENTER, 0, -22);
-        lv_obj_t *hint = label_new(screen, "Add your Finnhub API key\nin the local setup page", &lv_font_montserrat_14, COLOR_SECONDARY);
+        lv_obj_t *hint = label_new(screen, "Press to show\nFinnhub setup QR", &lv_font_montserrat_14, COLOR_SECONDARY);
         lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(hint, LV_ALIGN_CENTER, 0, 18);
         add_channel_nav(screen, PAGE_MARKETS);
@@ -438,8 +438,12 @@ static void render_markets(lv_obj_t *screen, const app_settings_t *settings) {
     lv_obj_align(change, LV_ALIGN_CENTER, 0, 2);
     lv_obj_t *updated = label_new(screen, available ? "Finnhub quote - may be delayed" : network_market_is_refreshing() ? "Refreshing Finnhub..." : "Finnhub unavailable", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(updated, LV_ALIGN_CENTER, 0, 50);
+    if (!available && !network_market_is_refreshing()) {
+        lv_obj_t *setup_hint = label_new(screen, "Press to update Finnhub key", &lv_font_montserrat_12, COLOR_TEAL);
+        lv_obj_align(setup_hint, LV_ALIGN_CENTER, 0, 66);
+    }
     lv_obj_t *selector = label_new(screen, "DJI     IXIC     GSPC", &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_align(selector, LV_ALIGN_CENTER, 0, 78);
+    lv_obj_align(selector, LV_ALIGN_CENTER, 0, available || network_market_is_refreshing() ? 78 : 86);
     add_channel_nav(screen, PAGE_MARKETS);
 }
 
@@ -554,16 +558,21 @@ static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) 
     const bool wifi_setup = navigation != NULL && navigation->settings_item == SETTINGS_WIFI;
     const bool available = wifi_setup ? network_local_wifi_url(url, sizeof(url)) : network_local_url(url, sizeof(url));
     add_header(screen, "LOCAL SETUP");
-    lv_obj_t *title = label_new(screen, available ? "Open this address" : "Connect Wi-Fi first", &lv_font_montserrat_20, COLOR_PRIMARY);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -46);
-    lv_obj_t *address = label_new(screen, url, &lv_font_montserrat_16, COLOR_TEAL);
-    lv_obj_set_style_text_align(address, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(address, LV_ALIGN_CENTER, 0, -10);
-    lv_obj_t *detail = label_new(screen, available ? wifi_setup ? "Same Wi-Fi network\nChange Wi-Fi connection" : "Same Wi-Fi network\nCity · Finnhub Key" : "Then return to this page", &lv_font_montserrat_14, COLOR_SECONDARY);
+    if (available) {
+        lv_obj_t *qr = lv_qrcode_create(screen);
+        lv_qrcode_set_size(qr, 142);
+        lv_qrcode_set_dark_color(qr, lv_color_hex(COLOR_BG));
+        lv_qrcode_set_light_color(qr, lv_color_hex(COLOR_PRIMARY));
+        lv_qrcode_set_quiet_zone(qr, true);
+        if (lv_qrcode_update(qr, url, strlen(url)) != LV_RESULT_OK) {
+            lv_obj_del(qr);
+        } else {
+            lv_obj_align(qr, LV_ALIGN_CENTER, 0, -3);
+        }
+    }
+    lv_obj_t *detail = label_new(screen, available ? wifi_setup ? "Scan to change Wi-Fi" : "Scan to configure Finnhub" : "Connect Wi-Fi first", &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_set_style_text_align(detail, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(detail, LV_ALIGN_CENTER, 0, 34);
-    lv_obj_t *hint = label_new(screen, "Long press to return", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
+    lv_obj_align(detail, LV_ALIGN_BOTTOM_MID, 0, -22);
 }
 
 static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) {
