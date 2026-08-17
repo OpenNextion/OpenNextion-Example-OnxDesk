@@ -18,6 +18,7 @@ typedef enum {
     PAGE_SETTINGS_MENU,
     PAGE_CONFIG_URL,
     PAGE_CITY_SETUP,
+    PAGE_WIFI_TEST,
 } app_page_t;
 
 typedef enum {

@@ -59,6 +59,28 @@ static void add_header(lv_obj_t *screen, const char *title) {
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 18);
 }
 
+static void add_arc_title(lv_obj_t *screen, const char *title) {
+    const size_t length = strlen(title);
+    if (length == 0) return;
+
+    /* Keep the normal 20px title but follow the usable upper edge of the round panel. */
+    static const int positions[][3] = {
+        { 33, 74, 2920 }, { 45, 52, 3070 }, { 65, 35, 3220 }, { 91, 25, 3370 },
+        { 119, 22, 3520 }, { 147, 26, 70 }, { 174, 38, 220 }, { 194, 56, 370 },
+        { 205, 80, 520 }, { 210, 105, 670 },
+    };
+    const size_t displayed = length < (sizeof(positions) / sizeof(positions[0])) ? length : (sizeof(positions) / sizeof(positions[0]));
+    for (size_t i = 0; i < displayed; i++) {
+        char character[2] = { title[i], '\0' };
+        lv_obj_t *letter = label_new(screen, character, &lv_font_montserrat_20, COLOR_TEAL);
+        lv_obj_update_layout(letter);
+        lv_obj_set_style_transform_pivot_x(letter, lv_obj_get_width(letter) / 2, 0);
+        lv_obj_set_style_transform_pivot_y(letter, lv_obj_get_height(letter) / 2, 0);
+        lv_obj_set_style_transform_rotation(letter, positions[i][2], 0);
+        lv_obj_set_pos(letter, positions[i][0] - lv_obj_get_width(letter) / 2, positions[i][1] - lv_obj_get_height(letter) / 2);
+    }
+}
+
 static void add_wifi_signal(lv_obj_t *screen, int x) {
     const unsigned int level = network_wifi_signal_level();
     static const int heights[] = { 4, 7, 10, 13 };
@@ -404,6 +426,22 @@ static void render_provisioning(lv_obj_t *screen) {
     lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -22);
 }
 
+static void render_wifi_test(lv_obj_t *screen) {
+    add_arc_title(screen, "WI-FI TEST");
+    lv_obj_t *title = label_new(screen, network_connection_failed() ? "Network unavailable" : "Testing saved Wi-Fi", &lv_font_montserrat_20,
+                                network_connection_failed() ? COLOR_RED : COLOR_PRIMARY);
+    lv_obj_set_width(title, 190);
+    lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -15);
+    lv_obj_t *detail = label_new(screen, network_connection_failed() ? "Opening Wi-Fi setup" : "Checking connection", &lv_font_montserrat_14,
+                                 network_connection_failed() ? COLOR_RED : COLOR_SECONDARY);
+    lv_obj_align(detail, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_t *footer = label_new(screen, "Setup opens only if connection fails", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_set_width(footer, 180);
+    lv_obj_set_style_text_align(footer, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -28);
+}
+
 static void loading_row(lv_obj_t *screen, int y, const char *label, const char *status, uint32_t color) {
     lv_obj_t *label_widget = label_new(screen, label, &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_set_pos(label_widget, 32, y);
@@ -486,6 +524,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_SETTINGS_MENU: render_settings_menu(screen, navigation, settings); break;
         case PAGE_CONFIG_URL: render_config_url(screen, navigation); break;
         case PAGE_CITY_SETUP: render_city_setup(screen, navigation); break;
+        case PAGE_WIFI_TEST: render_wifi_test(screen); break;
         default: break;
     }
     lvgl_port_unlock();

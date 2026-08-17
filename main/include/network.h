@@ -9,6 +9,7 @@
 esp_err_t network_init(app_settings_t *settings);
 bool network_is_connected(void);
 bool network_is_connecting(void);
+bool network_has_saved_wifi(void);
 bool network_connection_failed(void);
 bool network_initial_sync_complete(void);
 bool network_time_is_synced(void);

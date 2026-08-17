@@ -43,7 +43,11 @@ void app_main(void) {
 
     navigation_t navigation;
     navigation_init(&navigation);
-    if (!network_is_connected()) navigation.page = PAGE_PROVISIONING;
+    if (network_has_saved_wifi()) {
+        navigation.page = PAGE_WIFI_TEST;
+    } else if (!network_is_connected()) {
+        navigation.page = PAGE_PROVISIONING;
+    }
     app_ui_render(&navigation, &settings);
     ESP_LOGI(TAG, "ONX Desk booted. Default page: %s; city configured: %s; market key: %s",
              navigation_page_name(navigation.page),
@@ -54,8 +58,11 @@ void app_main(void) {
     while (true) {
         if (xQueueReceive(input_event_queue(), &event, pdMS_TO_TICKS(1000)) != pdTRUE) {
             const bool city_was_saved = network_take_city_saved();
-            if (navigation.page == PAGE_PROVISIONING && network_is_connected()) {
+            if ((navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_WIFI_TEST) && network_is_connected()) {
                 navigation.page = settings.city[0] == '\0' ? PAGE_CITY_SETUP : PAGE_LOADING;
+                app_ui_render(&navigation, &settings);
+            } else if (navigation.page == PAGE_WIFI_TEST && network_connection_failed()) {
+                navigation.page = PAGE_PROVISIONING;
                 app_ui_render(&navigation, &settings);
             } else if (navigation.page == PAGE_CITY_SETUP && navigation.city_setup_from_settings && city_was_saved) {
                 navigation.city_setup_from_settings = false;
@@ -69,7 +76,7 @@ void app_main(void) {
             } else if (navigation.page == PAGE_LOADING && network_initial_sync_complete()) {
                 navigation.page = PAGE_CLOCK;
                 app_ui_render(&navigation, &settings);
-            } else if (navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_LOADING) {
+            } else if (navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_WIFI_TEST || navigation.page == PAGE_LOADING) {
                 app_ui_render(&navigation, &settings);
             }
             if (navigation.page == PAGE_CLOCK) app_ui_render(&navigation, &settings);

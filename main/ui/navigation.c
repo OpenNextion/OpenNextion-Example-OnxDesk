@@ -84,6 +84,6 @@ bool navigation_long_press(navigation_t *navigation) {
 }
 
 const char *navigation_page_name(app_page_t page) {
-    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test", "Wi-Fi setup", "Loading", "Settings menu", "Local configuration", "City setup" };
-    return page <= PAGE_CITY_SETUP ? names[page] : "Unknown";
+    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "News", "Settings", "News categories", "News list", "Article QR", "Display test", "Wi-Fi setup", "Loading", "Settings menu", "Local configuration", "City setup", "Wi-Fi test" };
+    return page <= PAGE_WIFI_TEST ? names[page] : "Unknown";
 }

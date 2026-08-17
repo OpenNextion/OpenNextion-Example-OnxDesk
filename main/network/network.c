@@ -37,6 +37,7 @@ static unsigned int connection_retries;
 static wifi_config_t pending_station_config;
 static bool pending_station_config_valid;
 static bool wifi_started;
+static bool saved_wifi_present;
 static bool setup_ap_active;
 static char captive_portal_uri[] = "http://" SETUP_PAGE_IP "/";
 static char setup_ap_ssid[sizeof(((wifi_ap_config_t *)0)->ssid)];
@@ -644,6 +645,7 @@ esp_err_t network_init(app_settings_t *settings) {
     wifi_config_t saved_station = {0};
     ESP_RETURN_ON_ERROR(esp_wifi_get_config(WIFI_IF_STA, &saved_station), TAG, "read saved Wi-Fi settings");
     if (saved_station.sta.ssid[0] != '\0') {
+        saved_wifi_present = true;
         ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "enable station Wi-Fi");
         ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "start station Wi-Fi");
         wifi_started = true;
@@ -659,6 +661,7 @@ esp_err_t network_init(app_settings_t *settings) {
 
 bool network_is_connected(void) { return connected; }
 bool network_is_connecting(void) { return connect_requested && !connected; }
+bool network_has_saved_wifi(void) { return saved_wifi_present; }
 bool network_connection_failed(void) { return connection_failed; }
 bool network_initial_sync_complete(void) { return initial_sync_completed; }
 bool network_time_is_synced(void) { return time_synced; }
