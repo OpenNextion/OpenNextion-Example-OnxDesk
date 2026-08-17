@@ -209,9 +209,8 @@ static void render_crypto(lv_obj_t *screen, const navigation_t *navigation) {
     const bool available = network_get_crypto_quote(index, &quote);
     char pair[12];
     snprintf(pair, sizeof(pair), "%s/USDT", symbols[index]);
-    add_header(screen, pair);
-    lv_obj_t *coin = label_new(screen, symbols[index], &lv_font_montserrat_16, COLOR_ORANGE);
-    lv_obj_align(coin, LV_ALIGN_TOP_LEFT, 30, 54);
+    lv_obj_t *pair_label = label_new(screen, pair, &lv_font_montserrat_16, COLOR_ORANGE);
+    lv_obj_align(pair_label, LV_ALIGN_TOP_MID, 0, 18);
     char price_text[20] = "--";
     if (available) {
         if (quote.last_price >= 1000) snprintf(price_text, sizeof(price_text), "$%.0f", quote.last_price);
