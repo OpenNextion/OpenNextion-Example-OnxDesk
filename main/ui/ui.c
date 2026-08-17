@@ -210,8 +210,6 @@ static void render_crypto(lv_obj_t *screen) {
     lv_obj_align(price, LV_ALIGN_CENTER, 0, -28);
     lv_obj_t *change = label_new(screen, "▲ +2.34%   +$1,542", &lv_font_montserrat_16, COLOR_GREEN);
     lv_obj_align(change, LV_ALIGN_CENTER, 0, 2);
-    lv_obj_t *chart = panel_new(screen, 48, 130, 144, 2, COLOR_GREEN, LV_OPA_COVER);
-    lv_obj_set_style_transform_rotation(chart, 335, 0);
     lv_obj_t *range = label_new(screen, "24h", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(range, LV_ALIGN_CENTER, 0, 52);
     lv_obj_t *selector = label_new(screen, "BTC     ETH     SOL", &lv_font_montserrat_14, COLOR_SECONDARY);
