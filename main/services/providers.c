@@ -10,6 +10,7 @@
 #include "esp_http_client.h"
 
 #define HTTP_RESPONSE_MAX 6144
+#define NEWS_RESPONSE_MAX 12288
 #define OPEN_METEO_TIMEOUT_MS 8000
 
 typedef struct {
@@ -243,6 +244,56 @@ provider_status_t finnhub_refresh_quote(const char *symbol, const char *api_key,
     return PROVIDER_READY;
 }
 
-provider_status_t gdelt_refresh_category(const char *category) {
-    return (category != NULL && category[0] != '\0') ? PROVIDER_NOT_CONFIGURED : PROVIDER_RESPONSE_ERROR;
+provider_status_t gdelt_refresh_category(const char *query, news_item_t *items,
+                                         size_t items_capacity, size_t *item_count) {
+    if (item_count != NULL) *item_count = 0;
+    if (query == NULL || query[0] == '\0' || items == NULL || items_capacity == 0) return PROVIDER_RESPONSE_ERROR;
+    char encoded_query[256];
+    char url[512];
+    char *response = calloc(1, NEWS_RESPONSE_MAX);
+    if (response == NULL) return PROVIDER_NETWORK_ERROR;
+    if (!url_encode(query, encoded_query, sizeof(encoded_query)) ||
+        snprintf(url, sizeof(url),
+                 "https://api.gdeltproject.org/api/v2/doc/doc?query=%s&mode=artlist&format=json&maxrecords=%u&timespan=1d&sort=datedesc",
+                 encoded_query, (unsigned)items_capacity) >= (int)sizeof(url)) {
+        free(response);
+        return PROVIDER_RESPONSE_ERROR;
+    }
+    const provider_status_t status = https_get(url, response, NEWS_RESPONSE_MAX);
+    if (status != PROVIDER_READY) {
+        free(response);
+        return status;
+    }
+    cJSON *root = cJSON_Parse(response);
+    const cJSON *articles = root == NULL ? NULL : cJSON_GetObjectItemCaseSensitive(root, "articles");
+    if (!cJSON_IsArray(articles)) {
+        cJSON_Delete(root);
+        free(response);
+        return PROVIDER_RESPONSE_ERROR;
+    }
+    memset(items, 0, sizeof(*items) * items_capacity);
+    size_t count = 0;
+    cJSON *article = NULL;
+    cJSON_ArrayForEach(article, articles) {
+        if (count == items_capacity) break;
+        const cJSON *title = cJSON_GetObjectItemCaseSensitive(article, "title");
+        const cJSON *domain = cJSON_GetObjectItemCaseSensitive(article, "domain");
+        const cJSON *article_url = cJSON_GetObjectItemCaseSensitive(article, "url");
+        const cJSON *seen_date = cJSON_GetObjectItemCaseSensitive(article, "seendate");
+        if (!cJSON_IsString(title) || !cJSON_IsString(domain) || !cJSON_IsString(article_url) ||
+            title->valuestring == NULL || domain->valuestring == NULL || article_url->valuestring == NULL ||
+            title->valuestring[0] == '\0' || article_url->valuestring[0] == '\0') continue;
+        news_item_t *item = &items[count++];
+        item->valid = true;
+        strlcpy(item->title, title->valuestring, sizeof(item->title));
+        strlcpy(item->source_domain, domain->valuestring, sizeof(item->source_domain));
+        strlcpy(item->url, article_url->valuestring, sizeof(item->url));
+        if (cJSON_IsString(seen_date) && seen_date->valuestring != NULL) {
+            item->published_at = strtoll(seen_date->valuestring, NULL, 10);
+        }
+    }
+    cJSON_Delete(root);
+    free(response);
+    if (item_count != NULL) *item_count = count;
+    return count > 0 ? PROVIDER_READY : PROVIDER_RESPONSE_ERROR;
 }

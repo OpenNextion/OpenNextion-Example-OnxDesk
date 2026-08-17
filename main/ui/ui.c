@@ -466,17 +466,53 @@ static void news_row(lv_obj_t *screen, int y, const char *category, const char *
     lv_obj_set_pos(category_label, 30, y);
     lv_obj_t *headline = label_new(screen, first, &lv_font_montserrat_12, selected ? COLOR_PRIMARY : COLOR_SECONDARY);
     lv_obj_set_pos(headline, 30, y + 14);
+    lv_obj_set_width(headline, 180);
+    lv_label_set_long_mode(headline, LV_LABEL_LONG_MODE_CLIP);
     if (second != NULL) {
         lv_obj_t *continued = label_new(screen, second, &lv_font_montserrat_12, selected ? COLOR_PRIMARY : COLOR_SECONDARY);
         lv_obj_set_pos(continued, 30, y + 27);
+        lv_obj_set_width(continued, 180);
+        lv_label_set_long_mode(continued, LV_LABEL_LONG_MODE_CLIP);
     }
 }
 
+static void copy_news_text(char *destination, size_t destination_size, const char *source) {
+    if (destination_size == 0) return;
+    size_t written = 0;
+    bool last_was_space = false;
+    for (const unsigned char *cursor = (const unsigned char *)source; source != NULL && *cursor != '\0'; cursor++) {
+        char character = ' ';
+        if (*cursor >= 32 && *cursor <= 126) character = (char)*cursor;
+        if (character == ' ') {
+            if (written == 0 || last_was_space) continue;
+            last_was_space = true;
+        } else {
+            last_was_space = false;
+        }
+        if (written + 1 >= destination_size) break;
+        destination[written++] = character;
+    }
+    while (written > 0 && destination[written - 1] == ' ') written--;
+    destination[written] = '\0';
+}
+
 static void render_news_home(lv_obj_t *screen, const navigation_t *navigation) {
+    static const char *categories[] = { "WORLD", "BUSINESS", "TECHNOLOGY" };
     add_header(screen, "NEWS");
-    news_row(screen, 51, "WORLD", "Global headlines will", "appear after sync", navigation->news_category == NEWS_WORLD);
-    news_row(screen, 105, "BUSINESS", "Business headlines will", "appear after sync", navigation->news_category == NEWS_BUSINESS);
-    news_row(screen, 159, "TECHNOLOGY", "Technology headlines will", "appear after sync", navigation->news_category == NEWS_TECHNOLOGY);
+    for (unsigned int category = 0; category < 3; category++) {
+        news_item_t item = {0};
+        char headline[NEWS_TITLE_MAX_LEN];
+        char domain[NEWS_DOMAIN_MAX_LEN];
+        if (network_get_news_item(category, 0, &item)) {
+            copy_news_text(headline, sizeof(headline), item.title);
+            copy_news_text(domain, sizeof(domain), item.source_domain);
+        } else {
+            strlcpy(headline, network_news_is_refreshing() ? "Loading GDELT headlines..." : "Headlines unavailable", sizeof(headline));
+            strlcpy(domain, network_news_is_refreshing() ? "" : "Check Wi-Fi and try again", sizeof(domain));
+        }
+        news_row(screen, 51 + (int)category * 54, categories[category], headline, domain,
+                 navigation->news_category == (news_category_t)category);
+    }
     add_channel_nav(screen, PAGE_NEWS_HOME);
 }
 
@@ -500,24 +536,54 @@ static void render_news_list(lv_obj_t *screen, const navigation_t *navigation) {
     snprintf(title, sizeof(title), "> %s", categories[navigation->news_category]);
     add_header(screen, title);
     for (int i = 0; i < 4; i++) {
-        const unsigned item = (navigation->selected_index + (unsigned)i) % 8;
-        char row_title[42];
-        snprintf(row_title, sizeof(row_title), "News item %u - waiting for sync", item + 1);
-        news_row(screen, 53 + i * 38, i == 0 ? "SELECTED" : "", row_title, i == 0 ? "Press to display article QR" : "Source - time", i == 0);
+        const unsigned int index = (navigation->selected_index + (unsigned int)i) % NEWS_ITEMS_PER_CATEGORY;
+        news_item_t item = {0};
+        char headline[NEWS_TITLE_MAX_LEN];
+        char domain[NEWS_DOMAIN_MAX_LEN];
+        if (network_get_news_item((unsigned int)navigation->news_category, index, &item)) {
+            copy_news_text(headline, sizeof(headline), item.title);
+            copy_news_text(domain, sizeof(domain), item.source_domain);
+        } else {
+            strlcpy(headline, network_news_is_refreshing() ? "Loading GDELT headlines..." : "No article available", sizeof(headline));
+            strlcpy(domain, "", sizeof(domain));
+        }
+        news_row(screen, 53 + i * 38, i == 0 ? "SELECTED" : domain, headline,
+                 i == 0 && domain[0] != '\0' ? domain : NULL, i == 0);
     }
     add_channel_nav(screen, PAGE_NEWS_HOME);
 }
 
-static void render_news_qr(lv_obj_t *screen) {
+static void render_news_qr(lv_obj_t *screen, const navigation_t *navigation) {
     add_header(screen, "SCAN TO READ");
-    lv_obj_t *qr = panel_new(screen, 54, 48, 132, 132, COLOR_PRIMARY, LV_OPA_COVER);
-    for (int row = 0; row < 17; row++) {
-        for (int column = 0; column < 17; column++) {
-            if (((row * 7 + column * 11 + row * column) % 5) < 2) panel_new(qr, 7 + column * 7, 7 + row * 7, 6, 6, COLOR_BG, LV_OPA_COVER);
+    news_item_t item = {0};
+    char url[48] = {0};
+    const bool available = navigation != NULL &&
+        network_get_news_item((unsigned int)navigation->news_category, navigation->selected_index, &item) &&
+        network_news_url((unsigned int)navigation->news_category, navigation->selected_index, url, sizeof(url));
+    if (available) {
+        lv_obj_t *qr = lv_qrcode_create(screen);
+        lv_qrcode_set_size(qr, 154);
+        lv_qrcode_set_dark_color(qr, lv_color_hex(COLOR_BG));
+        lv_qrcode_set_light_color(qr, lv_color_hex(COLOR_PRIMARY));
+        lv_qrcode_set_quiet_zone(qr, true);
+        if (lv_qrcode_update(qr, url, strlen(url)) != LV_RESULT_OK) {
+            lv_obj_del(qr);
+        } else {
+            lv_obj_align(qr, LV_ALIGN_CENTER, 0, 2);
         }
     }
-    lv_obj_t *headline = label_new(screen, "Article QR will use the\noriginal GDELT source URL", &lv_font_montserrat_12, COLOR_SECONDARY);
+    char detail[NEWS_DOMAIN_MAX_LEN + 16];
+    if (available) {
+        char domain[NEWS_DOMAIN_MAX_LEN];
+        copy_news_text(domain, sizeof(domain), item.source_domain);
+        snprintf(detail, sizeof(detail), "Opens %s", domain);
+    } else {
+        strlcpy(detail, "Article unavailable", sizeof(detail));
+    }
+    lv_obj_t *headline = label_new(screen, detail, &lv_font_montserrat_12, COLOR_SECONDARY);
     lv_obj_set_style_text_align(headline, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_width(headline, 190);
+    lv_label_set_long_mode(headline, LV_LABEL_LONG_MODE_CLIP);
     lv_obj_align(headline, LV_ALIGN_BOTTOM_MID, 0, -27);
 }
 
@@ -720,7 +786,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_SETTINGS: render_settings(screen, settings); break;
         case PAGE_NEWS_CATEGORY_PICKER: render_news_picker(screen, navigation); break;
         case PAGE_NEWS_LIST: render_news_list(screen, navigation); break;
-        case PAGE_NEWS_QR: render_news_qr(screen); break;
+        case PAGE_NEWS_QR: render_news_qr(screen, navigation); break;
         case PAGE_DISPLAY_TEST: render_display_test(screen); break;
         case PAGE_PROVISIONING: render_provisioning(screen); break;
         case PAGE_LOADING: render_loading(screen, settings); break;

@@ -88,7 +88,11 @@ void app_main(void) {
             }
             if (navigation.page == PAGE_CRYPTO) network_request_crypto_refresh();
             if (navigation.page == PAGE_MARKETS) network_request_market_refresh();
-            if (navigation.page == PAGE_CLOCK || navigation.page == PAGE_CRYPTO || navigation.page == PAGE_MARKETS) app_ui_render(&navigation, &settings);
+            if (navigation.page == PAGE_NEWS_HOME || navigation.page == PAGE_NEWS_CATEGORY_PICKER ||
+                navigation.page == PAGE_NEWS_LIST || navigation.page == PAGE_NEWS_QR) network_request_news_refresh();
+            if (navigation.page == PAGE_CLOCK || navigation.page == PAGE_CRYPTO || navigation.page == PAGE_MARKETS ||
+                navigation.page == PAGE_NEWS_HOME || navigation.page == PAGE_NEWS_CATEGORY_PICKER ||
+                navigation.page == PAGE_NEWS_LIST || navigation.page == PAGE_NEWS_QR) app_ui_render(&navigation, &settings);
             continue;
         }
         if (event.type == INPUT_EVENT_ROTATE) {
