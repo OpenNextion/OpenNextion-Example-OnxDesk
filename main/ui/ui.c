@@ -159,89 +159,91 @@ static void weather_circle(lv_obj_t *screen, int x, int y, int size, uint32_t co
     lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
 }
 
-static void add_sun(lv_obj_t *screen, int x, int y, int size) {
+static void add_sun(lv_obj_t *screen, int x, int y, int width, int height) {
+    const int size = width < height ? width : height;
+    const int offset_x = x + (width - size) / 2;
     const int core = size * 12 / 25;
     const int ray = size < 28 ? 2 : 3;
     const int ray_length = size * 3 / 25;
     const int center = size / 2;
-    weather_circle(screen, x + (size - core) / 2, y + (size - core) / 2, core, COLOR_SUN);
-    panel_new(screen, x + center - ray / 2, y, ray, ray_length, COLOR_SUN, LV_OPA_COVER);
-    panel_new(screen, x + center - ray / 2, y + size - ray_length, ray, ray_length, COLOR_SUN, LV_OPA_COVER);
-    panel_new(screen, x, y + center - ray / 2, ray_length, ray, COLOR_SUN, LV_OPA_COVER);
-    panel_new(screen, x + size - ray_length, y + center - ray / 2, ray_length, ray, COLOR_SUN, LV_OPA_COVER);
-    weather_circle(screen, x + ray_length, y + ray_length, ray, COLOR_SUN);
-    weather_circle(screen, x + size - ray_length - ray, y + ray_length, ray, COLOR_SUN);
-    weather_circle(screen, x + ray_length, y + size - ray_length - ray, ray, COLOR_SUN);
-    weather_circle(screen, x + size - ray_length - ray, y + size - ray_length - ray, ray, COLOR_SUN);
+    weather_circle(screen, offset_x + (size - core) / 2, y + (size - core) / 2, core, COLOR_SUN);
+    panel_new(screen, offset_x + center - ray / 2, y, ray, ray_length, COLOR_SUN, LV_OPA_COVER);
+    panel_new(screen, offset_x + center - ray / 2, y + size - ray_length, ray, ray_length, COLOR_SUN, LV_OPA_COVER);
+    panel_new(screen, offset_x, y + center - ray / 2, ray_length, ray, COLOR_SUN, LV_OPA_COVER);
+    panel_new(screen, offset_x + size - ray_length, y + center - ray / 2, ray_length, ray, COLOR_SUN, LV_OPA_COVER);
+    weather_circle(screen, offset_x + ray_length, y + ray_length, ray, COLOR_SUN);
+    weather_circle(screen, offset_x + size - ray_length - ray, y + ray_length, ray, COLOR_SUN);
+    weather_circle(screen, offset_x + ray_length, y + size - ray_length - ray, ray, COLOR_SUN);
+    weather_circle(screen, offset_x + size - ray_length - ray, y + size - ray_length - ray, ray, COLOR_SUN);
 }
 
-static void add_cloud(lv_obj_t *screen, int x, int y, int size) {
-    const int small = size * 9 / 25;
-    const int large = size * 13 / 25;
-    weather_circle(screen, x + size * 3 / 25, y + size * 10 / 25, small, COLOR_CLOUD);
-    weather_circle(screen, x + size * 9 / 25, y + size * 3 / 25, large, COLOR_CLOUD);
-    weather_circle(screen, x + size * 15 / 25, y + size * 10 / 25, small, COLOR_CLOUD);
-    lv_obj_t *base = panel_new(screen, x + size * 3 / 25, y + size * 14 / 25, size * 19 / 25, size * 8 / 25, COLOR_CLOUD, LV_OPA_COVER);
-    lv_obj_set_style_radius(base, size / 5, 0);
+static void add_cloud(lv_obj_t *screen, int x, int y, int width, int height) {
+    const int small = height * 9 / 25;
+    const int large = height * 13 / 25;
+    weather_circle(screen, x + width * 8 / 100, y + height * 38 / 100, small, COLOR_CLOUD);
+    weather_circle(screen, x + width * 29 / 100, y + height * 7 / 100, large, COLOR_CLOUD);
+    weather_circle(screen, x + width * 58 / 100, y + height * 34 / 100, small, COLOR_CLOUD);
+    lv_obj_t *base = panel_new(screen, x + width * 8 / 100, y + height * 52 / 100, width * 80 / 100, height * 30 / 100, COLOR_CLOUD, LV_OPA_COVER);
+    lv_obj_set_style_radius(base, height / 4, 0);
 }
 
-static void add_rain_drops(lv_obj_t *screen, int x, int y, int size, int count, uint32_t color) {
-    const int drop_width = size < 28 ? 3 : 4;
-    const int drop_height = size < 28 ? 5 : 7;
-    const int spacing = count == 2 ? size / 3 : size / 4;
+static void add_rain_drops(lv_obj_t *screen, int x, int y, int width, int height, int count, uint32_t color) {
+    const int drop_width = height < 28 ? 3 : 4;
+    const int drop_height = height < 28 ? 5 : 7;
+    const int spacing = count == 2 ? width / 3 : width / 4;
     for (int i = 0; i < count; i++) {
         lv_obj_t *drop = panel_new(screen, x + spacing * (i + 1) - drop_width / 2, y + ((i & 1) ? 2 : 0), drop_width, drop_height, color, LV_OPA_COVER);
         lv_obj_set_style_radius(drop, LV_RADIUS_CIRCLE, 0);
     }
 }
 
-static void add_weather_icon(lv_obj_t *screen, int x, int y, int size, int weather_code, bool available) {
+static void add_weather_icon(lv_obj_t *screen, int x, int y, int width, int height, int weather_code, bool available) {
     if (!available) {
         lv_obj_t *waiting = label_new(screen, "--", &lv_font_montserrat_16, COLOR_MUTED);
-        lv_obj_align_to(waiting, screen, LV_ALIGN_TOP_LEFT, x + size / 4, y + size / 4);
+        lv_obj_set_pos(waiting, x + width / 3, y + height / 3);
         return;
     }
 
     switch (weather_icon_for_code(weather_code)) {
         case WEATHER_ICON_SUN:
-            add_sun(screen, x, y, size);
+            add_sun(screen, x, y, width, height);
             break;
         case WEATHER_ICON_PARTLY_CLOUDY:
-            add_sun(screen, x, y, size * 3 / 4);
-            add_cloud(screen, x + size / 4, y + size / 3, size * 3 / 4);
+            add_sun(screen, x, y, width * 3 / 5, height * 3 / 4);
+            add_cloud(screen, x + width * 3 / 10, y + height / 3, width * 7 / 10, height * 2 / 3);
             break;
         case WEATHER_ICON_CLOUDY:
-            add_cloud(screen, x, y + size / 8, size);
+            add_cloud(screen, x, y + height / 8, width, height * 7 / 8);
             break;
         case WEATHER_ICON_FOG:
-            add_cloud(screen, x, y, size);
-            panel_new(screen, x + size / 8, y + size * 3 / 4, size * 3 / 4, 2, COLOR_SECONDARY, LV_OPA_COVER);
-            panel_new(screen, x + size / 5, y + size * 7 / 8, size * 3 / 5, 2, COLOR_SECONDARY, LV_OPA_COVER);
+            add_cloud(screen, x, y, width, height * 3 / 4);
+            panel_new(screen, x + width / 8, y + height * 3 / 4, width * 3 / 4, 2, COLOR_SECONDARY, LV_OPA_COVER);
+            panel_new(screen, x + width / 5, y + height * 7 / 8, width * 3 / 5, 2, COLOR_SECONDARY, LV_OPA_COVER);
             break;
         case WEATHER_ICON_DRIZZLE:
-            add_cloud(screen, x, y, size);
-            add_rain_drops(screen, x, y + size * 3 / 4, size, 2, COLOR_RAIN);
+            add_cloud(screen, x, y, width, height * 3 / 4);
+            add_rain_drops(screen, x, y + height * 3 / 4, width, height, 2, COLOR_RAIN);
             break;
         case WEATHER_ICON_RAIN:
-            add_cloud(screen, x, y, size);
-            add_rain_drops(screen, x, y + size * 3 / 4, size, 3, COLOR_RAIN);
+            add_cloud(screen, x, y, width, height * 3 / 4);
+            add_rain_drops(screen, x, y + height * 3 / 4, width, height, 3, COLOR_RAIN);
             break;
         case WEATHER_ICON_SNOW:
-            add_cloud(screen, x, y, size);
-            add_rain_drops(screen, x, y + size * 3 / 4, size, 3, COLOR_SNOW);
+            add_cloud(screen, x, y, width, height * 3 / 4);
+            add_rain_drops(screen, x, y + height * 3 / 4, width, height, 3, COLOR_SNOW);
             break;
         case WEATHER_ICON_STORM: {
-            add_cloud(screen, x, y, size);
-            lv_obj_t *bolt = panel_new(screen, x + size * 11 / 25, y + size * 17 / 25, size / 7, size * 8 / 25, COLOR_SUN, LV_OPA_COVER);
-            lv_obj_set_style_transform_pivot_x(bolt, size / 14, 0);
-            lv_obj_set_style_transform_pivot_y(bolt, size * 4 / 25, 0);
+            add_cloud(screen, x, y, width, height * 3 / 4);
+            lv_obj_t *bolt = panel_new(screen, x + width * 11 / 25, y + height * 13 / 25, height / 7, height * 8 / 25, COLOR_SUN, LV_OPA_COVER);
+            lv_obj_set_style_transform_pivot_x(bolt, height / 14, 0);
+            lv_obj_set_style_transform_pivot_y(bolt, height * 4 / 25, 0);
             lv_obj_set_style_transform_rotation(bolt, 250, 0);
             break;
         }
         case WEATHER_ICON_HAIL:
-            add_cloud(screen, x, y, size);
-            add_rain_drops(screen, x, y + size * 3 / 4, size, 2, COLOR_RAIN);
-            weather_circle(screen, x + size * 17 / 25, y + size * 4 / 5, size < 28 ? 3 : 5, COLOR_SNOW);
+            add_cloud(screen, x, y, width, height * 3 / 4);
+            add_rain_drops(screen, x, y + height * 3 / 4, width, height, 2, COLOR_RAIN);
+            weather_circle(screen, x + width * 17 / 25, y + height * 4 / 5, height < 28 ? 3 : 5, COLOR_SNOW);
             break;
     }
 }
@@ -304,7 +306,7 @@ static void render_weather_forecast(lv_obj_t *screen) {
         panel_new(screen, 24, y, 192, 28, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
         lv_obj_t *day = label_new(screen, days[i], &lv_font_montserrat_12, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
         lv_obj_set_pos(day, 34, y + 8);
-        add_weather_icon(screen, 105, y + 4, 20, available ? weather.daily_weather_code[i] : 0, available);
+        add_weather_icon(screen, 100, y + 5, 30, 18, available ? weather.daily_weather_code[i] : 0, available);
         char temperatures[20] = "-- / --";
         if (available) snprintf(temperatures, sizeof(temperatures), "%.0f / %.0f", weather.daily_high_c[i], weather.daily_low_c[i]);
         lv_obj_t *temperature = label_new(screen, temperatures, &lv_font_montserrat_12, COLOR_SECONDARY);
@@ -322,7 +324,7 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     }
     weather_snapshot_t weather = {0};
     const bool available = network_get_weather(&weather);
-    add_weather_icon(screen, 96, 25, 48, available ? weather.weather_code : 0, available);
+    add_weather_icon(screen, 88, 28, 64, 42, available ? weather.weather_code : 0, available);
     char temperature_text[12] = "--";
     char condition_text[48] = "Set location in local setup";
     if (available) {
