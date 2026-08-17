@@ -129,8 +129,8 @@ static void render_weather_forecast(lv_obj_t *screen) {
         const char *condition_text = available ? (weather.daily_weather_code[i] <= 3 ? "CLEAR" : weather.daily_weather_code[i] <= 48 ? "CLOUDY" : weather.daily_weather_code[i] <= 67 ? "RAIN" : "STORM") : "--";
         lv_obj_t *condition = label_new(screen, condition_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(condition, LV_ALIGN_TOP_MID, 0, y + 8);
-        char temperatures[20] = "--° / --°";
-        if (available) snprintf(temperatures, sizeof(temperatures), "%.0f° / %.0f°", weather.daily_high_c[i], weather.daily_low_c[i]);
+        char temperatures[20] = "--C / --C";
+        if (available) snprintf(temperatures, sizeof(temperatures), "%.0fC / %.0fC", weather.daily_high_c[i], weather.daily_low_c[i]);
         lv_obj_t *temperature = label_new(screen, temperatures, &lv_font_montserrat_12, COLOR_SECONDARY);
         lv_obj_set_pos(temperature, 150, y + 8);
     }
@@ -147,13 +147,13 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
     const char *weather_name = !available ? "WAIT" : weather.weather_code <= 3 ? "SUN" : weather.weather_code <= 48 ? "CLOUD" : weather.weather_code <= 67 ? "RAIN" : "STORM";
     lv_obj_t *icon = label_new(screen, weather_name, &lv_font_montserrat_16, COLOR_TEAL);
     lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 34);
-    char temperature_text[12] = "--°";
+    char temperature_text[12] = "--C";
     char condition_text[48] = "Set location in local setup";
     if (available) {
-        snprintf(temperature_text, sizeof(temperature_text), "%.0f°", weather.temperature_c);
-        snprintf(condition_text, sizeof(condition_text), "Feels %.0f° · %s", weather.apparent_temperature_c, weather_name);
+        snprintf(temperature_text, sizeof(temperature_text), "%.0fC", weather.temperature_c);
+        snprintf(condition_text, sizeof(condition_text), "Feels %.0fC - %s", weather.apparent_temperature_c, weather_name);
     } else if (settings != NULL && settings->city[0]) {
-        strlcpy(condition_text, network_weather_is_refreshing() ? "Refreshing weather…" : "Weather unavailable; retrying", sizeof(condition_text));
+        strlcpy(condition_text, network_weather_is_refreshing() ? "Refreshing weather..." : "Weather unavailable; retrying", sizeof(condition_text));
     }
     lv_obj_t *temperature = label_new(screen, temperature_text, &lv_font_montserrat_48, COLOR_PRIMARY);
     lv_obj_align(temperature, LV_ALIGN_CENTER, 0, -8);
@@ -175,7 +175,7 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
         lv_obj_t *wind_value = label_new(screen, wind_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 64, 113);
         char range_text[32];
-        snprintf(range_text, sizeof(range_text), "HIGH %.0f°    LOW %.0f°", weather.daily_high_c[0], weather.daily_low_c[0]);
+        snprintf(range_text, sizeof(range_text), "HIGH %.0fC    LOW %.0fC", weather.daily_high_c[0], weather.daily_low_c[0]);
         lv_obj_t *range = label_new(screen, range_text, &lv_font_montserrat_14, COLOR_SECONDARY);
         lv_obj_align(range, LV_ALIGN_CENTER, 0, 65);
     }
