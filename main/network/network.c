@@ -23,8 +23,6 @@
 #define MAX_CONNECT_RETRIES 5
 #define CRYPTO_REFRESH_INTERVAL_US (60LL * 1000 * 1000)
 #define MARKET_REFRESH_INTERVAL_US (5LL * 60 * 1000 * 1000)
-#define NEWS_REFRESH_INTERVAL_US (15LL * 60 * 1000 * 1000)
-#define NEWS_CATEGORY_COUNT 3
 
 static const char *TAG = "network";
 static volatile bool connected;
@@ -38,10 +36,8 @@ static volatile bool weather_refreshing;
 static volatile bool crypto_refreshing;
 static volatile bool market_refreshing;
 static volatile bool market_refresh_pending;
-static volatile bool news_refreshing;
 static int64_t crypto_refresh_last_started_us;
 static int64_t market_refresh_last_started_us;
-static int64_t news_refresh_last_started_us;
 static volatile bool city_saved;
 static volatile bool captive_dns_active;
 static volatile bool captive_dns_running;
@@ -58,7 +54,6 @@ static app_settings_t *active_settings;
 static weather_snapshot_t latest_weather;
 static crypto_quote_t latest_crypto_quotes[3];
 static market_quote_t latest_market_quotes[3];
-static news_item_t latest_news[NEWS_CATEGORY_COUNT][NEWS_ITEMS_PER_CATEGORY];
 static esp_netif_t *setup_ap_netif;
 
 static esp_err_t enable_setup_ap(void);
@@ -173,49 +168,6 @@ void network_request_market_refresh(void) {
     }
 }
 
-static void news_refresh_task(void *argument) {
-    (void)argument;
-    static const char *queries[NEWS_CATEGORY_COUNT] = {
-        "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
-        "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en",
-        "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en",
-    };
-    static const char *names[NEWS_CATEGORY_COUNT] = { "World", "Business", "Technology" };
-    for (unsigned int category = 0; category < NEWS_CATEGORY_COUNT; category++) {
-        news_item_t *refreshed = calloc(NEWS_ITEMS_PER_CATEGORY, sizeof(*refreshed));
-        if (refreshed == NULL) {
-            ESP_LOGE(TAG, "could not allocate GDELT news cache");
-            continue;
-        }
-        size_t count = 0;
-        const provider_status_t status = google_news_refresh_category(queries[category], refreshed,
-                                                                        NEWS_ITEMS_PER_CATEGORY, &count);
-        if (status == PROVIDER_READY) {
-            memcpy(latest_news[category], refreshed, sizeof(latest_news[category]));
-            ESP_LOGI(TAG, "Google News %s refreshed: %u articles", names[category], (unsigned)count);
-        } else {
-            ESP_LOGW(TAG, "Google News %s refresh failed: %d", names[category], status);
-        }
-        free(refreshed);
-        if (category + 1 < NEWS_CATEGORY_COUNT) vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-    news_refreshing = false;
-    vTaskDelete(NULL);
-}
-
-void network_request_news_refresh(void) {
-    const int64_t now = esp_timer_get_time();
-    if (!connected || news_refreshing ||
-        (news_refresh_last_started_us != 0 && now - news_refresh_last_started_us < NEWS_REFRESH_INTERVAL_US)) return;
-    news_refreshing = true;
-    if (xTaskCreate(news_refresh_task, "news_refresh", 8192, NULL, 5, NULL) != pdPASS) {
-        news_refreshing = false;
-        ESP_LOGE(TAG, "failed to start news refresh task");
-    } else {
-        news_refresh_last_started_us = now;
-    }
-}
-
 bool network_take_city_saved(void) {
     const bool saved = city_saved;
     city_saved = false;
@@ -243,7 +195,6 @@ static void initial_sync_task(void *argument) {
     while (weather_refreshing) vTaskDelay(pdMS_TO_TICKS(100));
     network_request_crypto_refresh();
     network_request_market_refresh();
-    network_request_news_refresh();
     initial_sync_completed = true;
     vTaskDelete(NULL);
 }
@@ -658,28 +609,6 @@ static esp_err_t settings_state_get_handler(httpd_req_t *req) {
     return error;
 }
 
-static esp_err_t news_redirect_get_handler(httpd_req_t *req) {
-    char query[48] = {0};
-    char category_text[8] = {0};
-    char item_text[8] = {0};
-    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK ||
-        httpd_query_key_value(query, "c", category_text, sizeof(category_text)) != ESP_OK ||
-        httpd_query_key_value(query, "i", item_text, sizeof(item_text)) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid news link");
-        return ESP_FAIL;
-    }
-    const long category = strtol(category_text, NULL, 10);
-    const long item = strtol(item_text, NULL, 10);
-    if (category < 0 || category >= NEWS_CATEGORY_COUNT || item < 0 || item >= NEWS_ITEMS_PER_CATEGORY ||
-        !latest_news[category][item].valid || latest_news[category][item].url[0] == '\0') {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "News article unavailable");
-        return ESP_FAIL;
-    }
-    httpd_resp_set_status(req, "302 Found");
-    httpd_resp_set_hdr(req, "Location", latest_news[category][item].url);
-    return httpd_resp_sendstr(req, "Opening article...");
-}
-
 static esp_err_t redirect_handler(httpd_req_t *req, httpd_err_code_t error) {
     (void)error;
     httpd_resp_set_status(req, "302 Found");
@@ -711,7 +640,6 @@ static void start_setup_server(void) {
     const httpd_uri_t city_search = { .uri = "/city-search", .method = HTTP_GET, .handler = city_search_get_handler };
     const httpd_uri_t city_save = { .uri = "/city-save", .method = HTTP_POST, .handler = city_save_post_handler };
     const httpd_uri_t market_key = { .uri = "/market-key", .method = HTTP_POST, .handler = market_key_post_handler };
-    const httpd_uri_t news_redirect = { .uri = "/news", .method = HTTP_GET, .handler = news_redirect_get_handler };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &root));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &settings));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &scan));
@@ -721,7 +649,6 @@ static void start_setup_server(void) {
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &city_search));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &city_save));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &market_key));
-    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &news_redirect));
     ESP_ERROR_CHECK(httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect_handler));
 }
 
@@ -869,18 +796,6 @@ bool network_get_market_quote(unsigned int index, market_quote_t *quote) {
     return true;
 }
 bool network_market_is_refreshing(void) { return market_refreshing; }
-bool network_get_news_item(unsigned int category, unsigned int index, news_item_t *item) {
-    if (item == NULL || category >= NEWS_CATEGORY_COUNT || index >= NEWS_ITEMS_PER_CATEGORY ||
-        !latest_news[category][index].valid) return false;
-    *item = latest_news[category][index];
-    return true;
-}
-bool network_news_is_refreshing(void) { return news_refreshing; }
-bool network_news_url(unsigned int category, unsigned int index, char *buffer, size_t buffer_size) {
-    if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0' || category >= NEWS_CATEGORY_COUNT ||
-        index >= NEWS_ITEMS_PER_CATEGORY || !latest_news[category][index].valid) return false;
-    return snprintf(buffer, buffer_size, "http://%s/news?c=%u&i=%u", station_ip, category, index) < (int)buffer_size;
-}
 const char *network_setup_ssid(void) { return setup_ap_ssid; }
 bool network_local_url(char *buffer, size_t buffer_size) {
     if (buffer == NULL || buffer_size == 0 || station_ip[0] == '\0') return false;

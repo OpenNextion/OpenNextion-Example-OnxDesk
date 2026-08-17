@@ -5,12 +5,16 @@
 #include "esp_err.h"
 
 typedef enum {
-    HOME_CLOCK = 0,
-    HOME_WEATHER,
-    HOME_CRYPTO,
-    HOME_MARKETS,
-    HOME_NEWS,
+    HOME_CLOCK = 1 << 0,
+    HOME_WEATHER = 1 << 1,
+    HOME_CRYPTO = 1 << 2,
+    HOME_MARKETS = 1 << 3,
+    HOME_FOCUS = 1 << 4,
+    HOME_SETTINGS = 1 << 5,
 } home_page_t;
+
+#define HOME_PAGE_MASK_DEFAULT (HOME_CLOCK | HOME_WEATHER | HOME_CRYPTO | HOME_MARKETS | HOME_FOCUS | HOME_SETTINGS)
+#define HOME_PAGE_MASK_OPTIONAL (HOME_WEATHER | HOME_CRYPTO | HOME_MARKETS | HOME_FOCUS)
 
 typedef enum {
     ENCODER_SENSITIVITY_LOW = 0,
@@ -35,3 +39,5 @@ esp_err_t settings_save(const app_settings_t *settings);
 esp_err_t settings_factory_reset(void);
 esp_err_t settings_get_setup_ssid(char *ssid, size_t ssid_size);
 bool settings_has_market_key(const app_settings_t *settings);
+bool settings_home_page_enabled(const app_settings_t *settings, home_page_t page);
+bool settings_toggle_optional_home_page(app_settings_t *settings, home_page_t page);

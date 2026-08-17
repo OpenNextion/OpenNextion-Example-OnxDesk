@@ -1,17 +1,16 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
+#include "settings.h"
 
 typedef enum {
     PAGE_CLOCK = 0,
     PAGE_WEATHER,
     PAGE_CRYPTO,
     PAGE_MARKETS,
-    PAGE_NEWS_HOME,
+    PAGE_FOCUS,
     PAGE_SETTINGS,
-    PAGE_NEWS_CATEGORY_PICKER,
-    PAGE_NEWS_LIST,
-    PAGE_NEWS_QR,
     PAGE_DISPLAY_TEST,
     PAGE_PROVISIONING,
     PAGE_LOADING,
@@ -19,10 +18,12 @@ typedef enum {
     PAGE_CONFIG_URL,
     PAGE_CITY_SETUP,
     PAGE_WIFI_TEST,
+    PAGE_HOME_PAGES,
 } app_page_t;
 
 typedef enum {
-    SETTINGS_WIFI = 0,
+    SETTINGS_HOME_PAGES = 0,
+    SETTINGS_WIFI,
     SETTINGS_CITY,
     SETTINGS_SENSITIVITY,
     SETTINGS_FINNHUB,
@@ -31,17 +32,9 @@ typedef enum {
     SETTINGS_MENU_COUNT,
 } settings_menu_item_t;
 
-typedef enum {
-    NEWS_WORLD = 0,
-    NEWS_BUSINESS,
-    NEWS_TECHNOLOGY,
-} news_category_t;
-
 typedef struct {
     app_page_t page;
     app_page_t parent_page;
-    news_category_t news_category;
-    unsigned int selected_index;
     unsigned int crypto_index;
     bool crypto_selecting;
     unsigned int market_index;
@@ -50,10 +43,15 @@ typedef struct {
     bool weather_forecast;
     bool city_setup_show_qr;
     bool city_setup_from_settings;
+    unsigned int home_pages_item;
+    uint32_t focus_duration_seconds;
+    uint32_t focus_remaining_seconds;
+    int64_t focus_deadline_us;
+    bool focus_running;
 } navigation_t;
 
 void navigation_init(navigation_t *navigation);
-void navigation_rotate(navigation_t *navigation, int steps);
+void navigation_rotate(navigation_t *navigation, int steps, const app_settings_t *settings);
 void navigation_short_press(navigation_t *navigation);
 bool navigation_long_press(navigation_t *navigation);
 const char *navigation_page_name(app_page_t page);

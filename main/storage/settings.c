@@ -13,7 +13,7 @@
 
 static void settings_defaults(app_settings_t *settings) {
     memset(settings, 0, sizeof(*settings));
-    settings->home_page = HOME_CLOCK;
+    settings->home_page = HOME_PAGE_MASK_DEFAULT;
     settings->brightness_percent = 75;
     settings->encoder_step = ENCODER_SENSITIVITY_MEDIUM;
 }
@@ -42,6 +42,14 @@ esp_err_t settings_load(app_settings_t *settings) {
     if (error == ESP_ERR_NVS_NOT_FOUND) return ESP_OK;
     if (error == ESP_OK && size == sizeof(*settings)) {
         if (settings->encoder_step > ENCODER_SENSITIVITY_HIGH) settings->encoder_step = ENCODER_SENSITIVITY_MEDIUM;
+        /* Earlier firmware stored HOME_CLOCK as zero. Treat that legacy value
+         * as the new all-pages default without discarding city or API settings. */
+        if ((((unsigned int)settings->home_page) & HOME_PAGE_MASK_DEFAULT) == 0 ||
+            (((unsigned int)settings->home_page) & ~HOME_PAGE_MASK_DEFAULT) != 0) {
+            settings->home_page = HOME_PAGE_MASK_DEFAULT;
+        } else {
+            settings->home_page = (home_page_t)(((unsigned int)settings->home_page) | HOME_CLOCK | HOME_SETTINGS);
+        }
         return ESP_OK;
     }
     settings_defaults(settings);
@@ -87,4 +95,14 @@ esp_err_t settings_get_setup_ssid(char *ssid, size_t ssid_size) {
 
 bool settings_has_market_key(const app_settings_t *settings) {
     return settings != NULL && settings->finnhub_api_key[0] != '\0';
+}
+
+bool settings_home_page_enabled(const app_settings_t *settings, home_page_t page) {
+    return settings != NULL && (((unsigned int)settings->home_page & (unsigned int)page) != 0);
+}
+
+bool settings_toggle_optional_home_page(app_settings_t *settings, home_page_t page) {
+    if (settings == NULL || (((unsigned int)page & HOME_PAGE_MASK_OPTIONAL) == 0)) return false;
+    settings->home_page = (home_page_t)(((unsigned int)settings->home_page) ^ (unsigned int)page);
+    return true;
 }
