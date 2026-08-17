@@ -59,25 +59,22 @@ static void add_header(lv_obj_t *screen, const char *title) {
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 18);
 }
 
-static void add_arc_title(lv_obj_t *screen, const char *title) {
+static void add_arc_text(lv_obj_t *screen, const char *title, const lv_font_t *font, uint32_t color,
+                         int radius, int start_angle, int end_angle) {
     const size_t length = strlen(title);
     if (length == 0) return;
-
-    /* Keep the normal 20px title but follow the usable upper edge of the round panel. */
-    static const int positions[][3] = {
-        { 33, 74, 2920 }, { 45, 52, 3070 }, { 65, 35, 3220 }, { 91, 25, 3370 },
-        { 119, 22, 3520 }, { 147, 26, 70 }, { 174, 38, 220 }, { 194, 56, 370 },
-        { 205, 80, 520 }, { 210, 105, 670 },
-    };
-    const size_t displayed = length < (sizeof(positions) / sizeof(positions[0])) ? length : (sizeof(positions) / sizeof(positions[0]));
-    for (size_t i = 0; i < displayed; i++) {
+    for (size_t i = 0; i < length; i++) {
         char character[2] = { title[i], '\0' };
-        lv_obj_t *letter = label_new(screen, character, &lv_font_montserrat_20, COLOR_TEAL);
+        const int angle = length == 1 ? (start_angle + end_angle) / 2 :
+                          start_angle + (end_angle - start_angle) * (int)i / (int)(length - 1);
+        lv_obj_t *letter = label_new(screen, character, font, color);
         lv_obj_update_layout(letter);
         lv_obj_set_style_transform_pivot_x(letter, lv_obj_get_width(letter) / 2, 0);
         lv_obj_set_style_transform_pivot_y(letter, lv_obj_get_height(letter) / 2, 0);
-        lv_obj_set_style_transform_rotation(letter, positions[i][2], 0);
-        lv_obj_set_pos(letter, positions[i][0] - lv_obj_get_width(letter) / 2, positions[i][1] - lv_obj_get_height(letter) / 2);
+        lv_obj_set_style_transform_rotation(letter, ((angle + 90) % 360) * 10, 0);
+        const int x = DISPLAY_WIDTH / 2 + ((lv_trigo_cos(angle) * radius) >> LV_TRIGO_SHIFT);
+        const int y = DISPLAY_HEIGHT / 2 + ((lv_trigo_sin(angle) * radius) >> LV_TRIGO_SHIFT);
+        lv_obj_set_pos(letter, x - lv_obj_get_width(letter) / 2, y - lv_obj_get_height(letter) / 2);
     }
 }
 
@@ -444,7 +441,7 @@ static void render_provisioning(lv_obj_t *screen) {
 }
 
 static void render_wifi_test(lv_obj_t *screen) {
-    add_arc_title(screen, "WI-FI TEST");
+    add_arc_text(screen, "WI-FI TEST", &lv_font_montserrat_20, COLOR_TEAL, 96, 205, 335);
     lv_obj_t *title = label_new(screen, network_connection_failed() ? "Network unavailable" : "Testing saved Wi-Fi", &lv_font_montserrat_20,
                                 network_connection_failed() ? COLOR_RED : COLOR_PRIMARY);
     lv_obj_set_width(title, 190);
@@ -469,15 +466,14 @@ static void loading_row(lv_obj_t *screen, int y, const char *label, const char *
 static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
     const bool time_ready = network_time_is_synced();
     const bool sync_finished = network_initial_sync_complete();
-    add_header(screen, "STARTING ONXDESK");
-    lv_obj_t *title = label_new(screen, "Preparing your desk", &lv_font_montserrat_20, COLOR_PRIMARY);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 52);
-    loading_row(screen, 91, "Wi-Fi", "Connected", COLOR_GREEN);
-    loading_row(screen, 120, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing…", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
+    add_arc_text(screen, "STARTING ONXDESK", &lv_font_montserrat_14, COLOR_TEAL, 100, 205, 335);
+    add_arc_text(screen, "PREPARING YOUR DESK", &lv_font_montserrat_12, COLOR_PRIMARY, 74, 205, 335);
+    loading_row(screen, 96, "Wi-Fi", "Connected", COLOR_GREEN);
+    loading_row(screen, 124, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing…", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
     weather_snapshot_t weather = {0};
     const bool weather_ready = network_get_weather(&weather);
-    loading_row(screen, 149, "Weather", weather_ready ? "Loaded" : settings != NULL && settings->city[0] ? "Loading…" : "City not set", weather_ready ? COLOR_GREEN : settings != NULL && settings->city[0] ? COLOR_TEAL : COLOR_MUTED);
-    loading_row(screen, 178, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
+    loading_row(screen, 152, "Weather", weather_ready ? "Loaded" : settings != NULL && settings->city[0] ? "Loading…" : "City not set", weather_ready ? COLOR_GREEN : settings != NULL && settings->city[0] ? COLOR_TEAL : COLOR_MUTED);
+    loading_row(screen, 180, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
     lv_obj_t *footer = label_new(screen, sync_finished ? "Opening Clock" : "Opening Clock after time setup", &lv_font_montserrat_12, COLOR_MUTED);
     lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -24);
 }
