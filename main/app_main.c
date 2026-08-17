@@ -43,10 +43,12 @@ static void focus_toggle(navigation_t *navigation) {
         const int64_t remaining = navigation->focus_deadline_us - now;
         navigation->focus_remaining_seconds = remaining > 0 ? (uint32_t)((remaining + 999999) / 1000000) : 0;
         navigation->focus_running = false;
+        navigation->focus_paused = navigation->focus_remaining_seconds > 0;
         return;
     }
     if (navigation->focus_remaining_seconds == 0) navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
     navigation->focus_adjusting = false;
+    navigation->focus_paused = false;
     navigation->focus_deadline_us = now + (int64_t)navigation->focus_remaining_seconds * 1000000;
     navigation->focus_running = true;
 }
@@ -59,6 +61,7 @@ static bool focus_update(navigation_t *navigation) {
     navigation->focus_remaining_seconds = seconds;
     if (seconds == 0) {
         navigation->focus_running = false;
+        navigation->focus_paused = false;
         navigation->focus_alert_until_us = esp_timer_get_time() + 6LL * 1000 * 1000;
         navigation->focus_alert_flash_on = true;
         navigation->page = PAGE_FOCUS;
@@ -83,6 +86,13 @@ static bool focus_alert_update(navigation_t *navigation) {
 static void focus_dismiss_alert(navigation_t *navigation) {
     navigation->focus_alert_until_us = 0;
     navigation->focus_alert_flash_on = false;
+}
+
+static void focus_cancel(navigation_t *navigation) {
+    navigation->focus_running = false;
+    navigation->focus_paused = false;
+    navigation->focus_adjusting = false;
+    navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
 }
 
 static home_page_t selected_optional_home_page(const navigation_t *navigation) {
@@ -160,7 +170,8 @@ void app_main(void) {
                     ESP_ERROR_CHECK(settings_save(&settings));
                 }
             } else if (navigation.page == PAGE_FOCUS && !navigation.focus_running) {
-                navigation.focus_adjusting = !navigation.focus_adjusting;
+                if (navigation.focus_paused) focus_toggle(&navigation);
+                else navigation.focus_adjusting = !navigation.focus_adjusting;
             } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings, &navigation)) {
                 navigation.parent_page = PAGE_MARKETS;
                 navigation.settings_item = SETTINGS_FINNHUB;
@@ -173,6 +184,7 @@ void app_main(void) {
                 focus_dismiss_alert(&navigation);
             } else if (navigation.page == PAGE_FOCUS) {
                 if (navigation.focus_adjusting) navigation.focus_adjusting = false;
+                else if (navigation.focus_paused) focus_cancel(&navigation);
                 else focus_toggle(&navigation);
             } else {
                 navigation_long_press(&navigation);

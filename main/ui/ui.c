@@ -491,7 +491,8 @@ static void render_focus(lv_obj_t *screen, const navigation_t *navigation) {
                                      alerting ? alert_foreground : remaining == 0 ? COLOR_RED : COLOR_PRIMARY);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -14);
     const char *state = alerting ? "PRESS TO STOP" : navigation->focus_adjusting ? "Rotate - press to confirm" :
-                        remaining == 0 ? "Press to set - hold to start" : navigation->focus_running ? "RUNNING - hold to pause" : "Press to set - hold to start";
+                        remaining == 0 ? "Press to set - hold to start" : navigation->focus_running ? "RUNNING - hold to pause" :
+                        navigation->focus_paused ? "Press resume - hold cancel" : "Press to set - hold to start";
     lv_obj_t *state_label = label_new(screen, state, &lv_font_montserrat_12,
                                       alerting ? alert_foreground : navigation->focus_adjusting || navigation->focus_running ? COLOR_TEAL : COLOR_SECONDARY);
     lv_obj_align(state_label, LV_ALIGN_CENTER, 0, 36);
