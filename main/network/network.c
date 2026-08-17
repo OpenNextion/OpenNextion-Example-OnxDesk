@@ -35,6 +35,7 @@ static volatile bool time_synced;
 static volatile bool weather_refreshing;
 static volatile bool crypto_refreshing;
 static volatile bool market_refreshing;
+static volatile bool market_refresh_pending;
 static int64_t crypto_refresh_last_started_us;
 static int64_t market_refresh_last_started_us;
 static volatile bool city_saved;
@@ -132,9 +133,11 @@ static void market_refresh_task(void *argument) {
     (void)argument;
     static const char *symbols[] = { "^DJI", "^IXIC", "^GSPC" };
     static const char *names[] = { "Dow Jones", "Nasdaq", "S&P 500" };
+    char api_key[sizeof(active_settings->finnhub_api_key)] = {0};
+    strlcpy(api_key, active_settings->finnhub_api_key, sizeof(api_key));
     for (size_t index = 0; index < sizeof(symbols) / sizeof(symbols[0]); index++) {
         market_quote_t refreshed = { .symbol = symbols[index], .name = names[index] };
-        const provider_status_t status = finnhub_refresh_quote(symbols[index], active_settings->finnhub_api_key, &refreshed);
+        const provider_status_t status = finnhub_refresh_quote(symbols[index], api_key, &refreshed);
         if (status == PROVIDER_READY) {
             latest_market_quotes[index] = refreshed;
             ESP_LOGI(TAG, "Finnhub quote refreshed for %s", symbols[index]);
@@ -143,6 +146,11 @@ static void market_refresh_task(void *argument) {
         }
     }
     market_refreshing = false;
+    if (market_refresh_pending) {
+        market_refresh_pending = false;
+        market_refresh_last_started_us = 0;
+        network_request_market_refresh();
+    }
     vTaskDelete(NULL);
 }
 
@@ -570,9 +578,17 @@ static esp_err_t market_key_post_handler(httpd_req_t *req) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not save market key");
         return error;
     }
-    network_request_market_refresh();
+    memset(latest_market_quotes, 0, sizeof(latest_market_quotes));
+    market_refresh_last_started_us = 0;
+    if (key[0] == '\0') {
+        market_refresh_pending = false;
+    } else if (market_refreshing) {
+        market_refresh_pending = true;
+    } else {
+        network_request_market_refresh();
+    }
     httpd_resp_set_type(req, "text/plain");
-    return httpd_resp_sendstr(req, key[0] == '\0' ? "Finnhub key cleared." : "Finnhub key saved on this device.");
+    return httpd_resp_sendstr(req, key[0] == '\0' ? "Finnhub key cleared." : "Finnhub key saved. Checking market data now...");
 }
 
 static esp_err_t settings_state_get_handler(httpd_req_t *req) {
