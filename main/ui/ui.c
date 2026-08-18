@@ -533,22 +533,23 @@ static const char *encoder_sensitivity_name(const app_settings_t *settings) {
 static void render_settings(lv_obj_t *screen, const app_settings_t *settings) {
     add_header(screen, "SETTINGS");
     const char *city = settings != NULL && settings->city[0] ? settings->city : "Not configured";
-    const char *market = settings != NULL && settings_has_market_key(settings) ? "Configured" : "Not configured";
     const char *labels[] = { "Home pages", "WiFi", "City", "Sensitivity", "Finnhub Key", "About" };
-    const char *details[] = { "Customize", "Local setup page", city, encoder_sensitivity_name(settings), market, "OnxDesk - ONX2424G013" };
+    const char *details[] = { NULL, "Local setup page", city, encoder_sensitivity_name(settings), NULL, NULL };
     for (int i = 0; i < 6; i++) {
         const int y = 43 + i * 25;
         panel_new(screen, 20, y, 200, 20, i == 0 ? COLOR_TEAL : COLOR_SURFACE, i == 0 ? LV_OPA_20 : LV_OPA_40);
         lv_obj_t *label = label_new(screen, labels[i], &lv_font_montserrat_14, i == 0 ? COLOR_PRIMARY : COLOR_SECONDARY);
         lv_obj_set_pos(label, 30, y + 2);
-        lv_obj_t *detail = label_new(screen, details[i], &lv_font_montserrat_12, COLOR_MUTED);
-        lv_obj_set_pos(detail, 112, y + 4);
+        if (details[i] != NULL) {
+            lv_obj_t *detail = label_new(screen, details[i], &lv_font_montserrat_12, COLOR_MUTED);
+            lv_obj_set_pos(detail, 112, y + 4);
+        }
     }
     add_channel_nav(screen, PAGE_SETTINGS);
 }
 
 static void render_settings_menu(lv_obj_t *screen, const navigation_t *navigation, const app_settings_t *settings) {
-    static const char *labels[] = { "Home pages", "WiFi setup", "City", "Sensitivity", "Finnhub Key", "About", "Display test" };
+    static const char *labels[] = { "Home pages", "WiFi setup", "City", "Sensitivity", "Finnhub Key", "About" };
     add_header(screen, "SETTINGS MENU");
     for (int i = 0; i < SETTINGS_MENU_COUNT; i++) {
         const bool selected = i == navigation->settings_item;
@@ -718,21 +719,6 @@ static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
     loading_row(screen, 180, "Markets", settings != NULL && settings_has_market_key(settings) ? "Key ready" : "Key optional", settings != NULL && settings_has_market_key(settings) ? COLOR_GREEN : COLOR_MUTED);
 }
 
-static void add_color_swatch(lv_obj_t *parent, lv_color_t color, int x, int y) {
-    lv_obj_t *swatch = panel_new(parent, x, y, 48, 48, 0, LV_OPA_COVER);
-    lv_obj_set_style_radius(swatch, 8, 0);
-    lv_obj_set_style_bg_color(swatch, color, 0);
-}
-
-static void render_display_test(lv_obj_t *screen) {
-    lv_obj_set_style_bg_color(screen, lv_color_hex(0x000000), 0);
-    const lv_color_t colors[] = { lv_color_hex(0xFF0000), lv_color_hex(0x00FF00), lv_color_hex(0x0000FF), lv_color_hex(0xFFFFFF) };
-    for (int i = 0; i < 4; i++) add_color_swatch(screen, colors[i], 20 + (i % 2) * 152, 20 + (i / 2) * 152);
-    lv_obj_t *label = label_new(screen, "R       G\n\nB       W\n\nDISPLAY TEST", &lv_font_montserrat_14, COLOR_PRIMARY);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-}
-
 esp_err_t app_ui_init(const board_display_t *display) {
     if (display == NULL || display->panel == NULL || display->io == NULL) return ESP_ERR_INVALID_ARG;
     const lvgl_port_cfg_t port_config = ESP_LVGL_PORT_INIT_CONFIG();
@@ -769,7 +755,6 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_MARKETS: render_markets(screen, navigation, settings); break;
         case PAGE_FOCUS: render_focus(screen, navigation); break;
         case PAGE_SETTINGS: render_settings(screen, settings); break;
-        case PAGE_DISPLAY_TEST: render_display_test(screen); break;
         case PAGE_PROVISIONING: render_provisioning(screen); break;
         case PAGE_LOADING: render_loading(screen, settings); break;
         case PAGE_SETTINGS_MENU: render_settings_menu(screen, navigation, settings); break;
