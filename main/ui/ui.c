@@ -702,9 +702,6 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
             lv_obj_align(qr, LV_ALIGN_CENTER, 0, 2);
         }
     }
-    lv_obj_t *hint = label_new(screen, available ? "Phone: same Wi-Fi router\nCity saves automatically" : "Waiting for Wi-Fi address", &lv_font_montserrat_12, COLOR_SECONDARY);
-    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -18);
 }
 
 static void render_provisioning(lv_obj_t *screen) {
