@@ -694,7 +694,22 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
     const bool available = network_local_url(url, sizeof(url));
     add_header(screen, "CITY SETUP");
     const bool show_qr = navigation != NULL && navigation->city_setup_show_qr;
+    const bool first_setup = navigation != NULL && !navigation->city_setup_from_settings;
     if (!show_qr) {
+        if (first_setup) {
+            lv_obj_t *connected = panel_new(screen, 43, 48, 154, 27, COLOR_GREEN, LV_OPA_COVER);
+            lv_obj_set_style_radius(connected, LV_RADIUS_CIRCLE, 0);
+            lv_obj_t *connected_label = label_new(connected, "WI-FI CONNECTED", &lv_font_montserrat_14, COLOR_BG);
+            lv_obj_align(connected_label, LV_ALIGN_CENTER, 0, 0);
+            lv_obj_t *title = label_new(screen, "Set up your city", &lv_font_montserrat_20, COLOR_PRIMARY);
+            lv_obj_align(title, LV_ALIGN_CENTER, 0, -17);
+            lv_obj_t *instruction = label_new(screen, "On your phone, join the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
+            lv_obj_set_style_text_align(instruction, LV_TEXT_ALIGN_CENTER, 0);
+            lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 26);
+            lv_obj_t *hint = label_new(screen, "Press to show setup QR", &lv_font_montserrat_14, COLOR_TEAL);
+            lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
+            return;
+        }
         lv_obj_t *title = label_new(screen, "Connect your phone", &lv_font_montserrat_20, COLOR_PRIMARY);
         lv_obj_align(title, LV_ALIGN_CENTER, 0, -34);
         lv_obj_t *instruction = label_new(screen, "Connect to the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
