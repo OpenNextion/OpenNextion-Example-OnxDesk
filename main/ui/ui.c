@@ -123,6 +123,45 @@ static void add_celsius_unit(lv_obj_t *screen, int x, int y, int size, uint32_t 
     lv_obj_clear_flag(letter_c, LV_OBJ_FLAG_CLICKABLE);
 }
 
+static void add_temperature_range(lv_obj_t *screen, float low, float high, float current) {
+    const int track_x = 55;
+    const int track_y = 191;
+    const int track_width = 130;
+    const int track_height = 7;
+    static const uint32_t colors[] = { COLOR_RAIN, COLOR_TEAL, COLOR_SUN, COLOR_ORANGE, COLOR_RED };
+
+    char low_text[8];
+    char high_text[8];
+    snprintf(low_text, sizeof(low_text), "%.0f", low);
+    snprintf(high_text, sizeof(high_text), "%.0f", high);
+    lv_obj_t *low_label = label_new(screen, low_text, &lv_font_montserrat_16, COLOR_RAIN);
+    lv_obj_t *high_label = label_new(screen, high_text, &lv_font_montserrat_16, COLOR_ORANGE);
+    lv_obj_set_pos(low_label, 24, 176);
+    lv_obj_update_layout(low_label);
+    add_celsius_unit(screen, 26 + lv_obj_get_width(low_label), 179, 8, COLOR_RAIN);
+    lv_obj_update_layout(high_label);
+    const int high_x = 216 - lv_obj_get_width(high_label) - 10;
+    lv_obj_set_pos(high_label, high_x, 176);
+    add_celsius_unit(screen, high_x + lv_obj_get_width(high_label) + 2, 179, 8, COLOR_ORANGE);
+
+    for (size_t i = 0; i < sizeof(colors) / sizeof(colors[0]); i++) {
+        const int start = track_x + (int)(i * track_width / (sizeof(colors) / sizeof(colors[0])));
+        const int end = track_x + (int)((i + 1) * track_width / (sizeof(colors) / sizeof(colors[0])));
+        lv_obj_t *segment = panel_new(screen, start, track_y, end - start + 1, track_height, colors[i], LV_OPA_COVER);
+        lv_obj_set_style_radius(segment, LV_RADIUS_CIRCLE, 0);
+    }
+
+    const float range = high - low;
+    float position = range > 0.1f ? (current - low) / range : 0.5f;
+    if (position < 0) position = 0;
+    if (position > 1) position = 1;
+    const int marker_x = track_x + (int)(position * (track_width - 1)) - 5;
+    lv_obj_t *marker = panel_new(screen, marker_x, track_y - 3, 11, 11, COLOR_PRIMARY, LV_OPA_COVER);
+    lv_obj_set_style_radius(marker, LV_RADIUS_CIRCLE, 0);
+    lv_obj_t *marker_inner = panel_new(screen, marker_x + 3, track_y, 5, 5, COLOR_BG, LV_OPA_COVER);
+    lv_obj_set_style_radius(marker_inner, LV_RADIUS_CIRCLE, 0);
+}
+
 typedef enum {
     WEATHER_ICON_SUN,
     WEATHER_ICON_PARTLY_CLOUDY,
@@ -368,23 +407,7 @@ static void render_weather(lv_obj_t *screen, const navigation_t *navigation, con
         snprintf(wind_text, sizeof(wind_text), "%.0f km/h", weather.wind_speed_kmh);
         lv_obj_t *wind_value = label_new(screen, wind_text, &lv_font_montserrat_12, COLOR_TEAL);
         lv_obj_align(wind_value, LV_ALIGN_TOP_MID, 82, 113);
-        char high_text[16];
-        char low_text[16];
-        snprintf(high_text, sizeof(high_text), "HIGH %.0f", weather.daily_high_c[0]);
-        snprintf(low_text, sizeof(low_text), "LOW %.0f", weather.daily_low_c[0]);
-        lv_obj_t *high = label_new(screen, high_text, &lv_font_montserrat_14, COLOR_SECONDARY);
-        lv_obj_t *low = label_new(screen, low_text, &lv_font_montserrat_14, COLOR_SECONDARY);
-        lv_obj_update_layout(high);
-        lv_obj_update_layout(low);
-        const int unit_width = 10;
-        const int gap = 12;
-        const int total_width = lv_obj_get_width(high) + unit_width + gap + lv_obj_get_width(low) + unit_width;
-        const int x = (DISPLAY_WIDTH - total_width) / 2;
-        lv_obj_set_pos(high, x, 178);
-        add_celsius_unit(screen, x + lv_obj_get_width(high) + 2, 181, 8, COLOR_SECONDARY);
-        const int low_x = x + lv_obj_get_width(high) + unit_width + gap;
-        lv_obj_set_pos(low, low_x, 178);
-        add_celsius_unit(screen, low_x + lv_obj_get_width(low) + 2, 181, 8, COLOR_SECONDARY);
+        add_temperature_range(screen, weather.daily_low_c[0], weather.daily_high_c[0], weather.temperature_c);
     }
     add_channel_nav(screen, PAGE_WEATHER);
 }
