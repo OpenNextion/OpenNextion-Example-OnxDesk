@@ -754,7 +754,7 @@ static void render_provisioning(lv_obj_t *screen) {
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -44);
     lv_obj_t *network = label_new(screen, network_setup_ssid(), &lv_font_montserrat_20, COLOR_TEAL);
     lv_obj_align(network, LV_ALIGN_CENTER, 0, -13);
-    lv_obj_t *hint = label_new(screen, "Open in a browser", &lv_font_montserrat_14, COLOR_SECONDARY);
+    lv_obj_t *hint = label_new(screen, "If no browser opens, visit", &lv_font_montserrat_14, COLOR_SECONDARY);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(hint, LV_ALIGN_CENTER, 0, 20);
     lv_obj_t *address = label_new(screen, "192.168.4.1", &lv_font_montserrat_20, COLOR_PRIMARY);
