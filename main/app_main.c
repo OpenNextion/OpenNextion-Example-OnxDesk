@@ -102,6 +102,7 @@ static void focus_dismiss_alert(navigation_t *navigation) {
     navigation->focus_running = false;
     navigation->focus_paused = false;
     navigation->focus_adjusting = false;
+    if (navigation->focus_duration_seconds == 0) navigation->focus_duration_seconds = 25 * 60;
     navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
     navigation->page = PAGE_FOCUS;
 }

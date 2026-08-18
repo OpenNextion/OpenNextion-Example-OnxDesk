@@ -506,11 +506,13 @@ static void render_markets(lv_obj_t *screen, const navigation_t *navigation, con
 }
 
 static void render_focus(lv_obj_t *screen, const navigation_t *navigation) {
-    const uint32_t remaining = navigation->focus_remaining_seconds;
+    const bool alerting = navigation->focus_alert_until_us != 0;
+    const bool restore_duration = !alerting && !navigation->focus_running && !navigation->focus_paused &&
+                                  !navigation->focus_adjusting && navigation->focus_remaining_seconds == 0;
+    const uint32_t remaining = restore_duration ? navigation->focus_duration_seconds : navigation->focus_remaining_seconds;
     const uint32_t minutes = remaining / 60;
     const uint32_t seconds = remaining % 60;
     const bool pomodoro = navigation->focus_duration_seconds == 25 * 60;
-    const bool alerting = navigation->focus_alert_until_us != 0;
     const uint32_t alert_background = navigation->focus_alert_flash_on ? COLOR_ALERT_RED : COLOR_BG;
     const uint32_t alert_foreground = COLOR_PRIMARY;
     if (alerting) {
