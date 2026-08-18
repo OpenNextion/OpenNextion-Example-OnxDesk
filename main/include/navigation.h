@@ -42,6 +42,7 @@ typedef struct {
     bool weather_forecast;
     bool city_setup_show_qr;
     bool city_setup_from_settings;
+    bool config_url_show_qr;
     unsigned int home_pages_item;
     uint32_t focus_duration_seconds;
     uint32_t focus_remaining_seconds;

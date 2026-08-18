@@ -78,8 +78,8 @@ and persist across normal restarts. A factory reset generates a new name.
 2. After signing in, open the Finnhub Dashboard to find and copy your API key.
 3. Send or copy the key to the phone you will use for OnxDesk setup, so it is
    ready to paste into the local settings page.
-4. On the device, open **Settings → Finnhub Key**, then use the displayed local
-   URL or QR code on that phone to save the key.
+4. On the device, open **Settings → Finnhub Key**, confirm the same-router
+   prompt, then short-press to display the setup QR code and save the key.
 
 Treat the API key as a private credential. Do not post it in issues, logs, or
 public screenshots.

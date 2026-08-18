@@ -60,6 +60,8 @@ void navigation_short_press(navigation_t *navigation) {
         navigation->market_selecting = !navigation->market_selecting;
     } else if (navigation->page == PAGE_CITY_SETUP) {
         navigation->city_setup_show_qr = true;
+    } else if (navigation->page == PAGE_CONFIG_URL && navigation->settings_item == SETTINGS_FINNHUB) {
+        navigation->config_url_show_qr = true;
     } else if (navigation->page == PAGE_SETTINGS) {
         navigation->parent_page = PAGE_SETTINGS;
         navigation->settings_item = SETTINGS_HOME_PAGES;
@@ -78,6 +80,7 @@ void navigation_short_press(navigation_t *navigation) {
     } else if (navigation->page == PAGE_SETTINGS_MENU &&
                (navigation->settings_item == SETTINGS_WIFI || navigation->settings_item == SETTINGS_FINNHUB)) {
         navigation->parent_page = PAGE_SETTINGS_MENU;
+        navigation->config_url_show_qr = navigation->settings_item == SETTINGS_WIFI;
         navigation->page = PAGE_CONFIG_URL;
     }
 }
@@ -99,7 +102,13 @@ bool navigation_long_press(navigation_t *navigation) {
             return false;
         case PAGE_HOME_PAGES: navigation->page = PAGE_SETTINGS_MENU; return true;
         case PAGE_ABOUT: navigation->page = PAGE_SETTINGS_MENU; return true;
-        case PAGE_CONFIG_URL: navigation->page = navigation->parent_page; return true;
+        case PAGE_CONFIG_URL:
+            if (navigation->settings_item == SETTINGS_FINNHUB && navigation->config_url_show_qr) {
+                navigation->config_url_show_qr = false;
+                return true;
+            }
+            navigation->page = navigation->parent_page;
+            return true;
         case PAGE_CITY_SETUP:
             if (navigation->city_setup_show_qr) {
                 navigation->city_setup_show_qr = false;

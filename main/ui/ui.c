@@ -656,8 +656,20 @@ static void render_about(lv_obj_t *screen) {
 static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) {
     char url[40] = "Waiting for Wi-Fi";
     const bool wifi_setup = navigation != NULL && navigation->settings_item == SETTINGS_WIFI;
+    const bool finnhub_setup = navigation != NULL && navigation->settings_item == SETTINGS_FINNHUB;
+    const bool show_qr = !finnhub_setup || (navigation != NULL && navigation->config_url_show_qr);
     const bool available = wifi_setup ? network_local_wifi_url(url, sizeof(url)) : network_local_url(url, sizeof(url));
-    add_header(screen, "LOCAL SETUP");
+    add_header(screen, finnhub_setup ? "FINNHUB KEY" : "LOCAL SETUP");
+    if (!show_qr) {
+        lv_obj_t *title = label_new(screen, "Connect your phone", &lv_font_montserrat_20, COLOR_PRIMARY);
+        lv_obj_align(title, LV_ALIGN_CENTER, 0, -34);
+        lv_obj_t *instruction = label_new(screen, "Connect to the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
+        lv_obj_set_style_text_align(instruction, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 4);
+        lv_obj_t *hint = label_new(screen, "Press to show setup QR", &lv_font_montserrat_14, COLOR_TEAL);
+        lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
+        return;
+    }
     if (available) {
         lv_obj_t *qr = lv_qrcode_create(screen);
         lv_qrcode_set_size(qr, 142);
@@ -670,9 +682,11 @@ static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) 
             lv_obj_align(qr, LV_ALIGN_CENTER, 0, -3);
         }
     }
-    lv_obj_t *detail = label_new(screen, available ? wifi_setup ? "Scan to change Wi-Fi" : "Scan to configure Finnhub" : "Connect Wi-Fi first", &lv_font_montserrat_14, COLOR_SECONDARY);
-    lv_obj_set_style_text_align(detail, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(detail, LV_ALIGN_BOTTOM_MID, 0, -22);
+    if (wifi_setup) {
+        lv_obj_t *detail = label_new(screen, available ? "Scan to change Wi-Fi" : "Connect Wi-Fi first", &lv_font_montserrat_14, COLOR_SECONDARY);
+        lv_obj_set_style_text_align(detail, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(detail, LV_ALIGN_BOTTOM_MID, 0, -22);
+    }
 }
 
 static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) {

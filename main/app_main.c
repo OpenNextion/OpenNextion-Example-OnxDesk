@@ -202,6 +202,7 @@ void app_main(void) {
             } else if (navigation.page == PAGE_MARKETS && market_configuration_needed(&settings, &navigation)) {
                 navigation.parent_page = PAGE_MARKETS;
                 navigation.settings_item = SETTINGS_FINNHUB;
+                navigation.config_url_show_qr = false;
                 navigation.page = PAGE_CONFIG_URL;
             } else {
                 navigation_short_press(&navigation);
