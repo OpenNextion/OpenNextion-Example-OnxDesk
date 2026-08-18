@@ -99,6 +99,11 @@ static void focus_dismiss_alert(navigation_t *navigation) {
     navigation->focus_alert_until_us = 0;
     navigation->focus_alert_next_us = 0;
     navigation->focus_alert_flash_on = false;
+    navigation->focus_running = false;
+    navigation->focus_paused = false;
+    navigation->focus_adjusting = false;
+    navigation->focus_remaining_seconds = navigation->focus_duration_seconds;
+    navigation->page = PAGE_FOCUS;
 }
 
 static void focus_cancel(navigation_t *navigation) {
