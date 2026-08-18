@@ -28,7 +28,7 @@ An ESP-IDF and LVGL 9 desktop information display for the OpenNextion ONX2424G01
 
 1. Rotate normally to move between channels; the default Focus duration is a 25-minute Pomodoro.
 2. Short-press on Focus to enter time adjustment.
-3. Rotate in five-minute steps to choose a 1–120 minute countdown. Turning below five minutes selects the one-minute test duration.
+3. Rotate in five-minute steps from 5–120 minutes, or in one-minute steps between 1–5 minutes.
 4. Short-press to confirm the duration. Long-press to start or pause the timer.
 5. While paused, short-press to resume, or long-press to cancel and restore the selected duration.
 

@@ -32,8 +32,8 @@ void navigation_rotate(navigation_t *navigation, int steps, const app_settings_t
         int duration = (int)(navigation->focus_remaining_seconds == 0 ? navigation->focus_duration_seconds : navigation->focus_remaining_seconds);
         const int direction = steps < 0 ? -1 : 1;
         for (int move = 0; move < (steps < 0 ? -steps : steps); move++) {
-            if (direction < 0) duration = duration <= 5 * 60 ? 60 : duration - 5 * 60;
-            else duration = duration < 5 * 60 ? 5 * 60 : duration + 5 * 60;
+            if (direction < 0) duration = duration <= 5 * 60 ? (duration > 60 ? duration - 60 : 60) : duration - 5 * 60;
+            else duration = duration < 5 * 60 ? duration + 60 : duration + 5 * 60;
             if (duration > 120 * 60) duration = 120 * 60;
         }
         navigation->focus_duration_seconds = (uint32_t)duration;
