@@ -125,10 +125,23 @@ static void add_celsius_unit(lv_obj_t *screen, int x, int y, int size, uint32_t 
 
 static void add_temperature_range(lv_obj_t *screen, float low, float high, float current) {
     const int track_x = 55;
-    const int track_y = 191;
+    const int track_y = 186;
     const int track_width = 130;
     const int track_height = 7;
-    static const uint32_t colors[] = { COLOR_RAIN, COLOR_TEAL, COLOR_SUN, COLOR_ORANGE, COLOR_RED };
+    static const lv_color_t colors[] = {
+        LV_COLOR_MAKE(0x4E, 0x9E, 0xFF),
+        LV_COLOR_MAKE(0xF4, 0xD7, 0x4F),
+        LV_COLOR_MAKE(0xF5, 0x9A, 0x32),
+    };
+    static const uint8_t fractions[] = { 0, 128, 255 };
+    static lv_grad_dsc_t gradient;
+    static bool gradient_ready;
+
+    if (!gradient_ready) {
+        lv_grad_init_stops(&gradient, colors, NULL, fractions, sizeof(colors) / sizeof(colors[0]));
+        lv_grad_horizontal_init(&gradient);
+        gradient_ready = true;
+    }
 
     char low_text[8];
     char high_text[8];
@@ -136,24 +149,17 @@ static void add_temperature_range(lv_obj_t *screen, float low, float high, float
     snprintf(high_text, sizeof(high_text), "%.0f", high);
     lv_obj_t *low_label = label_new(screen, low_text, &lv_font_montserrat_16, COLOR_RAIN);
     lv_obj_t *high_label = label_new(screen, high_text, &lv_font_montserrat_16, COLOR_ORANGE);
-    lv_obj_t *low_prefix = label_new(screen, "L", &lv_font_montserrat_12, COLOR_RAIN);
-    lv_obj_set_pos(low_prefix, 22, 179);
-    lv_obj_set_pos(low_label, 34, 176);
+    lv_obj_set_pos(low_label, 24, 171);
     lv_obj_update_layout(low_label);
-    add_celsius_unit(screen, 36 + lv_obj_get_width(low_label), 179, 8, COLOR_RAIN);
+    add_celsius_unit(screen, 26 + lv_obj_get_width(low_label), 174, 8, COLOR_RAIN);
     lv_obj_update_layout(high_label);
     const int high_x = 216 - lv_obj_get_width(high_label) - 10;
-    lv_obj_t *high_prefix = label_new(screen, "H", &lv_font_montserrat_12, COLOR_ORANGE);
-    lv_obj_set_pos(high_prefix, high_x - 12, 179);
-    lv_obj_set_pos(high_label, high_x, 176);
-    add_celsius_unit(screen, high_x + lv_obj_get_width(high_label) + 2, 179, 8, COLOR_ORANGE);
+    lv_obj_set_pos(high_label, high_x, 171);
+    add_celsius_unit(screen, high_x + lv_obj_get_width(high_label) + 2, 174, 8, COLOR_ORANGE);
 
-    for (size_t i = 0; i < sizeof(colors) / sizeof(colors[0]); i++) {
-        const int start = track_x + (int)(i * track_width / (sizeof(colors) / sizeof(colors[0])));
-        const int end = track_x + (int)((i + 1) * track_width / (sizeof(colors) / sizeof(colors[0])));
-        lv_obj_t *segment = panel_new(screen, start, track_y, end - start + 1, track_height, colors[i], LV_OPA_COVER);
-        lv_obj_set_style_radius(segment, LV_RADIUS_CIRCLE, 0);
-    }
+    lv_obj_t *track = panel_new(screen, track_x, track_y, track_width, track_height, COLOR_RAIN, LV_OPA_COVER);
+    lv_obj_set_style_radius(track, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_grad(track, &gradient, LV_PART_MAIN);
 
     const float range = high - low;
     float position = range > 0.1f ? (current - low) / range : 0.5f;
