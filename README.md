@@ -33,7 +33,7 @@ An ESP-IDF and LVGL 9 desktop information display for the OpenNextion ONX2424G01
 5. While paused, short-press to resume, or long-press to cancel and restore the selected duration.
 
 - A small orange progress ring appears on other top-level pages while a timer runs.
-- At zero, OnxDesk opens the Focus page and alternates red and white for six seconds. Either encoder press dismisses the alert without starting another timer.
+- At zero, OnxDesk opens the Focus page and alternates red and white for three minutes. If it is not acknowledged, it stays quiet for ten minutes and then repeats the three-minute alert until a short press ends the reminder.
 
 ### Settings and reset
 

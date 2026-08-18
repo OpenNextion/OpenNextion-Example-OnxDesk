@@ -11,6 +11,9 @@
 
 static const char *TAG = "onxdesk";
 
+#define FOCUS_ALERT_FLASH_US (3LL * 60 * 1000 * 1000)
+#define FOCUS_ALERT_QUIET_US (10LL * 60 * 1000 * 1000)
+
 static int apply_encoder_sensitivity(int raw_steps, uint8_t sensitivity) {
     static int low_sensitivity_accumulator;
     if (sensitivity == ENCODER_SENSITIVITY_LOW) {
@@ -62,7 +65,8 @@ static bool focus_update(navigation_t *navigation) {
     if (seconds == 0) {
         navigation->focus_running = false;
         navigation->focus_paused = false;
-        navigation->focus_alert_until_us = esp_timer_get_time() + 6LL * 1000 * 1000;
+        navigation->focus_alert_until_us = esp_timer_get_time() + FOCUS_ALERT_FLASH_US;
+        navigation->focus_alert_next_us = 0;
         navigation->focus_alert_flash_on = true;
         navigation->page = PAGE_FOCUS;
     }
@@ -70,21 +74,30 @@ static bool focus_update(navigation_t *navigation) {
 }
 
 static bool focus_alert_update(navigation_t *navigation) {
-    if (navigation->focus_alert_until_us == 0) return false;
     const int64_t now = esp_timer_get_time();
-    if (now >= navigation->focus_alert_until_us) {
-        navigation->focus_alert_until_us = 0;
-        navigation->focus_alert_flash_on = false;
+    if (navigation->focus_alert_until_us != 0) {
+        if (now >= navigation->focus_alert_until_us) {
+            navigation->focus_alert_until_us = 0;
+            navigation->focus_alert_next_us = now + FOCUS_ALERT_QUIET_US;
+            navigation->focus_alert_flash_on = false;
+            return true;
+        }
+        const bool flash_on = ((now / 250000) & 1) == 0;
+        if (flash_on == navigation->focus_alert_flash_on) return false;
+        navigation->focus_alert_flash_on = flash_on;
         return true;
     }
-    const bool flash_on = ((now / 250000) & 1) == 0;
-    if (flash_on == navigation->focus_alert_flash_on) return false;
-    navigation->focus_alert_flash_on = flash_on;
+    if (navigation->focus_alert_next_us == 0 || now < navigation->focus_alert_next_us) return false;
+    navigation->focus_alert_until_us = now + FOCUS_ALERT_FLASH_US;
+    navigation->focus_alert_next_us = 0;
+    navigation->focus_alert_flash_on = true;
+    navigation->page = PAGE_FOCUS;
     return true;
 }
 
 static void focus_dismiss_alert(navigation_t *navigation) {
     navigation->focus_alert_until_us = 0;
+    navigation->focus_alert_next_us = 0;
     navigation->focus_alert_flash_on = false;
 }
 
@@ -162,13 +175,13 @@ void app_main(void) {
             if (navigation.page == PAGE_CRYPTO) network_request_crypto_refresh();
             if (navigation.page == PAGE_MARKETS) network_request_market_refresh();
             if (navigation.page == PAGE_CLOCK || navigation.page == PAGE_CRYPTO || navigation.page == PAGE_MARKETS ||
-                focus_changed || alert_changed) app_ui_render(&navigation, &settings);
+                focus_changed || (alert_changed && navigation.page == PAGE_FOCUS)) app_ui_render(&navigation, &settings);
             continue;
         }
         if (event.type == INPUT_EVENT_ROTATE) {
             navigation_rotate(&navigation, apply_encoder_sensitivity(event.value, settings.encoder_step), &settings);
         } else if (event.type == INPUT_EVENT_KEY_SHORT_PRESS) {
-            if (navigation.focus_alert_until_us != 0) {
+            if (navigation.focus_alert_until_us != 0 || navigation.focus_alert_next_us != 0) {
                 focus_dismiss_alert(&navigation);
             } else if (navigation.page == PAGE_SETTINGS_MENU && navigation.settings_item == SETTINGS_SENSITIVITY) {
                 advance_encoder_sensitivity(&settings);
@@ -188,8 +201,8 @@ void app_main(void) {
                 navigation_short_press(&navigation);
             }
         } else if (event.type == INPUT_EVENT_KEY_LONG_PRESS) {
-            if (navigation.focus_alert_until_us != 0) {
-                focus_dismiss_alert(&navigation);
+            if (navigation.focus_alert_until_us != 0 || navigation.focus_alert_next_us != 0) {
+                /* A completed timer is acknowledged only with a short press. */
             } else if (navigation.page == PAGE_FOCUS) {
                 if (navigation.focus_adjusting) navigation.focus_adjusting = false;
                 else if (navigation.focus_paused) focus_cancel(&navigation);

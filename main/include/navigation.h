@@ -47,6 +47,7 @@ typedef struct {
     uint32_t focus_remaining_seconds;
     int64_t focus_deadline_us;
     int64_t focus_alert_until_us;
+    int64_t focus_alert_next_us;
     bool focus_running;
     bool focus_paused;
     bool focus_adjusting;
