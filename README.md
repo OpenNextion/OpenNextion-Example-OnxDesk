@@ -1,9 +1,5 @@
 # OnxDesk
 
-<p align="center">
-  <img src="assets/onxdesk-ui-overview.png" alt="OnxDesk UI overview">
-</p>
-
 OnxDesk is an independent open-source prototype for a small, multi-function
 desktop companion. It combines a round display, a rotary encoder, Wi-Fi, and
 internet data into a glanceable desk object for time, weather, markets, crypto,
@@ -13,6 +9,10 @@ It is built with ESP-IDF and LVGL 9. The current implementation targets the
 OpenNextion ONX2424G013 round rotary display, but OnxDesk is not an official
 OpenNextion project, product, firmware release, or endorsement. It is a
 community prototype made to explore this form factor.
+
+<p align="center">
+  <img src="assets/onxdesk-ui-overview.png" alt="OnxDesk UI overview">
+</p>
 
 ## Project goals
 
