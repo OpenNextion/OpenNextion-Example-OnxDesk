@@ -125,7 +125,7 @@ static void add_celsius_unit(lv_obj_t *screen, int x, int y, int size, uint32_t 
 
 static void add_temperature_range(lv_obj_t *screen, float low, float high, float current) {
     const int track_x = 55;
-    const int track_y = 181;
+    const int track_y = 171;
     const int track_width = 130;
     const int track_height = 7;
     static const lv_color_t colors[] = {
@@ -149,13 +149,13 @@ static void add_temperature_range(lv_obj_t *screen, float low, float high, float
     snprintf(high_text, sizeof(high_text), "%.0f", high);
     lv_obj_t *low_label = label_new(screen, low_text, &lv_font_montserrat_16, COLOR_RAIN);
     lv_obj_t *high_label = label_new(screen, high_text, &lv_font_montserrat_16, COLOR_ORANGE);
-    lv_obj_set_pos(low_label, 24, 171);
+    lv_obj_set_pos(low_label, 24, 166);
     lv_obj_update_layout(low_label);
-    add_celsius_unit(screen, 26 + lv_obj_get_width(low_label), 174, 8, COLOR_RAIN);
+    add_celsius_unit(screen, 26 + lv_obj_get_width(low_label), 169, 8, COLOR_RAIN);
     lv_obj_update_layout(high_label);
     const int high_x = 216 - lv_obj_get_width(high_label) - 10;
-    lv_obj_set_pos(high_label, high_x, 171);
-    add_celsius_unit(screen, high_x + lv_obj_get_width(high_label) + 2, 174, 8, COLOR_ORANGE);
+    lv_obj_set_pos(high_label, high_x, 166);
+    add_celsius_unit(screen, high_x + lv_obj_get_width(high_label) + 2, 169, 8, COLOR_ORANGE);
 
     lv_obj_t *track = panel_new(screen, track_x, track_y, track_width, track_height, COLOR_RAIN, LV_OPA_COVER);
     lv_obj_set_style_radius(track, LV_RADIUS_CIRCLE, 0);
