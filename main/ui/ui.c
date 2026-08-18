@@ -696,9 +696,9 @@ static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) 
 static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) {
     char url[40] = {0};
     const bool available = network_local_url(url, sizeof(url));
-    add_header(screen, "CITY SETUP");
     const bool show_qr = navigation != NULL && navigation->city_setup_show_qr;
     const bool first_setup = navigation != NULL && !navigation->city_setup_from_settings;
+    if (!first_setup || show_qr) add_header(screen, "CITY SETUP");
     if (!show_qr) {
         if (first_setup) {
             lv_obj_t *connected = panel_new(screen, 43, 48, 154, 27, COLOR_GREEN, LV_OPA_COVER);
@@ -721,7 +721,7 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
             lv_obj_set_style_text_align(instruction, LV_TEXT_ALIGN_CENTER, 0);
             lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 26);
             lv_obj_t *hint = label_new(screen, "Press to show setup QR", &lv_font_montserrat_14, COLOR_TEAL);
-            lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
+            lv_obj_align(hint, LV_ALIGN_CENTER, 0, 62);
             return;
         }
         lv_obj_t *title = label_new(screen, "Connect your phone", &lv_font_montserrat_20, COLOR_PRIMARY);
