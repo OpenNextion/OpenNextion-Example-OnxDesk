@@ -80,6 +80,8 @@ and persist across normal restarts. A factory reset generates a new name.
    ready to paste into the local settings page.
 4. On the device, open **Settings → Finnhub Key**, confirm the same-router
    prompt, then short-press to display the setup QR code and save the key.
+5. If a key is already saved, the local page shows only a masked tail such as
+   `****qu30`. Paste a new key and select **Replace API key** to change it.
 
 Treat the API key as a private credential. Do not post it in issues, logs, or
 public screenshots.
