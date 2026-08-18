@@ -31,10 +31,6 @@ community prototype made to explore this form factor.
 The ONX2424G013 is the first OpenNextion-family board supported by this
 repository. Support for other OpenNextion boards may be added later.
 
-The linked ONX2424G013 Wiki address follows the public OpenNextion board-page
-naming convention and is included as a placeholder. Official board
-documentation has not been published yet.
-
 The OnxDesk application is also suitable in principle for other ESP32-based
 prototype rotary displays. A port still requires board-specific work for the
 LCD driver, display rotation and colour order, input GPIOs, memory layout, and
