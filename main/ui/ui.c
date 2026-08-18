@@ -128,19 +128,25 @@ static void add_temperature_range(lv_obj_t *screen, float low, float high, float
     const int track_y = 171;
     const int track_width = 130;
     const int track_height = 7;
-    static const lv_color_t colors[] = {
+    static const lv_color_t mild_colors[] = {
         LV_COLOR_MAKE(0x4E, 0x9E, 0xFF),
-        LV_COLOR_MAKE(0xF4, 0xD7, 0x4F),
-        LV_COLOR_MAKE(0xF5, 0x9A, 0x32),
+        LV_COLOR_MAKE(0xF5, 0xC4, 0x53),
     };
-    static const uint8_t fractions[] = { 0, 128, 255 };
-    static lv_grad_dsc_t gradient;
-    static bool gradient_ready;
+    static const lv_color_t hot_colors[] = {
+        LV_COLOR_MAKE(0x4E, 0x9E, 0xFF),
+        LV_COLOR_MAKE(0xF8, 0x71, 0x71),
+    };
+    static const uint8_t fractions[] = { 0, 255 };
+    static lv_grad_dsc_t mild_gradient;
+    static lv_grad_dsc_t hot_gradient;
+    static bool gradients_ready;
 
-    if (!gradient_ready) {
-        lv_grad_init_stops(&gradient, colors, NULL, fractions, sizeof(colors) / sizeof(colors[0]));
-        lv_grad_horizontal_init(&gradient);
-        gradient_ready = true;
+    if (!gradients_ready) {
+        lv_grad_init_stops(&mild_gradient, mild_colors, NULL, fractions, sizeof(mild_colors) / sizeof(mild_colors[0]));
+        lv_grad_horizontal_init(&mild_gradient);
+        lv_grad_init_stops(&hot_gradient, hot_colors, NULL, fractions, sizeof(hot_colors) / sizeof(hot_colors[0]));
+        lv_grad_horizontal_init(&hot_gradient);
+        gradients_ready = true;
     }
 
     char low_text[8];
@@ -159,7 +165,7 @@ static void add_temperature_range(lv_obj_t *screen, float low, float high, float
 
     lv_obj_t *track = panel_new(screen, track_x, track_y, track_width, track_height, COLOR_RAIN, LV_OPA_COVER);
     lv_obj_set_style_radius(track, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_grad(track, &gradient, LV_PART_MAIN);
+    lv_obj_set_style_bg_grad(track, high >= 35.0f ? &hot_gradient : &mild_gradient, LV_PART_MAIN);
 
     const float range = high - low;
     float position = range > 0.1f ? (current - low) / range : 0.5f;
