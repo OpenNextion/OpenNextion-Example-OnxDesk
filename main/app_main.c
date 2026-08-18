@@ -154,7 +154,7 @@ void app_main(void) {
             } else if (navigation.page == PAGE_LOADING && network_initial_sync_complete()) {
                 navigation.page = PAGE_CLOCK;
                 app_ui_render(&navigation, &settings);
-            } else if (navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_WIFI_TEST || navigation.page == PAGE_LOADING) {
+            } else if (navigation.page == PAGE_PROVISIONING || navigation.page == PAGE_LOADING) {
                 app_ui_render(&navigation, &settings);
             }
             const bool focus_changed = focus_update(&navigation);
