@@ -125,7 +125,7 @@ static void add_celsius_unit(lv_obj_t *screen, int x, int y, int size, uint32_t 
 
 static void add_temperature_range(lv_obj_t *screen, float low, float high, float current) {
     const int track_x = 55;
-    const int track_y = 186;
+    const int track_y = 181;
     const int track_width = 130;
     const int track_height = 7;
     static const lv_color_t colors[] = {
