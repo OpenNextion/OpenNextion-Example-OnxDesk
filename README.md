@@ -1,6 +1,6 @@
 # ONX Desk for ONX2424G013
 
-An ESP-IDF and LVGL 9 desktop information display for the OpenNextion ONX2424G013 (ESP32-S3R8, 240x240 GC9A01N round LCD, 16 MB flash and 8 MB OPI PSRAM).
+An ESP-IDF and LVGL 9 desktop information display for the OpenNextion ONX2424G013: ESP32-S3R8, 240×240 GC9A01N round LCD, 16 MB flash, and 8 MB OPI PSRAM.
 
 ## First-release scope
 
@@ -12,30 +12,58 @@ An ESP-IDF and LVGL 9 desktop information display for the OpenNextion ONX2424G01
 | Markets | Finnhub | User supplies a personal API key; Dow Jones, Nasdaq-100, S&P 500 ETF proxies |
 | Focus | Device-local Pomodoro and countdown timer | None; 25 minutes by default, adjustable from 1 to 120 minutes |
 
-The firmware does not scrape finance websites. Market API keys stay in the device's NVS and must never be committed or printed to logs.
+- The firmware does not scrape finance websites.
+- Market API keys stay in the device's NVS and are never committed or printed to logs.
 
 ## Controls
 
-- Rotate: choose a visible channel, menu entry, or Focus duration while the timer is stopped.
-- Encoder short press: enter or confirm.
-- Encoder long press: return one level.
-- BOOT (GPIO0) long press for three seconds: restore factory settings, clearing Wi-Fi, city, time zone, Finnhub API key, preferences and cached data.
+### Everyday navigation
 
-On the Weather channel, a short press switches between current conditions and the three-day forecast.
+- Rotate the encoder to choose a visible channel or menu entry.
+- Short-press the encoder to enter or confirm.
+- Long-press the encoder to return one level.
+- On the Weather channel, short-press to switch between current conditions and the three-day forecast.
 
-On Focus, the default 25-minute duration is a Pomodoro. Rotate normally to move between channels. Press to enter time adjustment, rotate in five-minute steps for a 1–120 minute countdown (turning below five minutes selects the one-minute test duration), then press to confirm. Hold the knob to start or pause the timer. While paused, press to resume or hold to cancel and restore the selected duration. A small orange progress ring appears on other top-level pages while a timer runs. When it reaches zero, OnxDesk opens the Focus page and alternates red and white for six seconds; either encoder press dismisses the alert without starting another timer.
+### Focus timer
 
-Settings → **Home pages** can hide Weather, Crypto, Markets, and Focus from the top-level rotation. Clock and Settings remain available so the device always has a home screen and a way to re-enable pages. Page order stays fixed in this release.
+1. Rotate normally to move between channels; the default Focus duration is a 25-minute Pomodoro.
+2. Short-press on Focus to enter time adjustment.
+3. Rotate in five-minute steps to choose a 1–120 minute countdown. Turning below five minutes selects the one-minute test duration.
+4. Short-press to confirm the duration. Long-press to start or pause the timer.
+5. While paused, short-press to resume, or long-press to cancel and restore the selected duration.
 
-Settings → **About** shows the project name and the exact ESP-IDF firmware version, plus a QR code for the [GitHub Issues page](https://github.com/OpenNextion/OpenNextion-Example-OnxDesk/issues).
+- A small orange progress ring appears on other top-level pages while a timer runs.
+- At zero, OnxDesk opens the Focus page and alternates red and white for six seconds. Either encoder press dismisses the alert without starting another timer.
 
-## Wi-Fi setup
+### Settings and reset
 
-On a new device (or after a BOOT factory reset), OnxDesk starts an open `OnxDesk-ABCDE` Wi-Fi network and shows its exact name on the display. The final five characters are generated per device and persist across normal restarts; a factory reset generates a new name. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. The first-run page is deliberately Wi-Fi-only. If no city is stored after the connection succeeds, OnxDesk shows a large QR code for its LAN `/settings` page; connect the phone to the same router before scanning it. Saving a city starts the weather request, then opens the Clock screen.
+- **Settings → Home pages** can hide Weather, Crypto, Markets, and Focus from top-level rotation. Clock and Settings always remain available, and page order is fixed in this release.
+- **Settings → About** shows the project name, exact ESP-IDF firmware version, and a QR code for the [GitHub Issues page](https://github.com/OpenNextion/OpenNextion-Example-OnxDesk/issues).
+- Long-press **BOOT** (GPIO0) for three seconds to restore factory settings. This clears Wi-Fi, city, time zone, Finnhub API key, preferences, and cached data.
 
-After provisioning, an independent settings centre remains available at the device's LAN address while it is powered on. OnxDesk displays its `http://…/settings` address when you choose **City** or **Finnhub Key** in Settings. Connect the phone to the same Wi-Fi, open the shown URL, then update the city or Finnhub API key. City search now only runs after OnxDesk has network access. The API key is saved only in device NVS and is never shown again.
+## Wi-Fi and city setup
 
-## Hardware pin map
+### First-time setup
+
+1. On a new device, or after a BOOT factory reset, OnxDesk starts an open `OnxDesk-ABCDE` Wi-Fi network and displays its exact name.
+2. Join that network with a phone. If the captive portal does not open automatically, browse to [http://192.168.4.1](http://192.168.4.1).
+3. Choose a nearby 2.4 GHz network or enter its SSID, then enter the password and submit the form.
+4. The first-run page only configures Wi-Fi. After the connection succeeds, if no city is stored, the device shows a large QR code for its LAN `/settings` page.
+5. Connect the phone to the same router before scanning the QR code. Save a city to start the weather request and open the Clock screen.
+
+The final five characters of the setup-network name are generated per device and persist across normal restarts. A factory reset generates a new name.
+
+### Later changes
+
+1. Open **Settings → City** or **Settings → Finnhub Key** on the device.
+2. On the same Wi-Fi as the device, open the displayed `http://…/settings` address with a phone.
+3. Update the city or Finnhub API key in the local settings centre.
+
+City search only runs after OnxDesk has network access. The API key is saved only in device NVS and is never shown again.
+
+## Hardware reference
+
+The pin map is included for firmware developers and hardware troubleshooting. It is not needed for normal use.
 
 | Function | GPIO |
 | --- | --- |
@@ -46,8 +74,12 @@ After provisioning, an independent settings centre remains available at the devi
 
 ## Status
 
-The hardware bring-up, provisioning, SNTP time setup, city search and Open-Meteo weather client are in place. Other channel data clients remain staged separately.
+- Hardware bring-up, provisioning, SNTP time setup, city search, and the Open-Meteo weather client are in place.
+- Other channel data clients remain staged separately.
 
-## Data notice
+## Data disclaimer
 
-Data sources may delay, change, be unavailable or return incorrect data. This project is for informational use only and is not investment advice. Users must comply with each provider's terms of use.
+- Data is retrieved from third-party internet services.
+- It may be delayed, incomplete, unavailable, changed, or incorrect.
+- This project is provided for informational purposes only and does not constitute investment, financial, or trading advice.
+- You are responsible for independently verifying data and complying with each data provider's terms of use.
