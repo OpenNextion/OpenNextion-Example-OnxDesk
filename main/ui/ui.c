@@ -456,18 +456,11 @@ static void render_markets(lv_obj_t *screen, const navigation_t *navigation, con
     }
     lv_obj_t *change = label_new(screen, change_text, &lv_font_montserrat_16, change_color);
     lv_obj_align(change, LV_ALIGN_CENTER, 0, 2);
-    lv_obj_t *updated = label_new(screen, available ? "Finnhub ETF quote - may be delayed" : network_market_is_refreshing() ? "Refreshing Finnhub..." : "Finnhub unavailable", &lv_font_montserrat_12, COLOR_MUTED);
-    lv_obj_align(updated, LV_ALIGN_CENTER, 0, 50);
-    if (!available && !network_market_is_refreshing()) {
-        lv_obj_t *setup_hint = label_new(screen, "Press to update Finnhub key", &lv_font_montserrat_12, COLOR_TEAL);
-        lv_obj_align(setup_hint, LV_ALIGN_CENTER, 0, 66);
-    }
     for (int i = 0; i < 3; i++) {
         const uint32_t selector_color = (unsigned int)i == index ?
             (navigation != NULL && navigation->market_selecting ? COLOR_PRIMARY : COLOR_TEAL) : COLOR_SECONDARY;
         lv_obj_t *selector = label_new(screen, symbols[i], &lv_font_montserrat_14, selector_color);
-        lv_obj_align(selector, LV_ALIGN_CENTER, (i - 1) * 58,
-                     available || network_market_is_refreshing() ? 78 : 86);
+        lv_obj_align(selector, LV_ALIGN_CENTER, (i - 1) * 58, 55);
     }
     add_channel_nav(screen, PAGE_MARKETS);
 }
