@@ -826,6 +826,11 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
     if (navigation == NULL || !lvgl_port_lock(0)) return;
     lv_obj_t *screen = lv_screen_active();
     lv_obj_clean(screen);
+    /* This is a fixed 240x240 rotary UI, not a scrollable view.  Keeping the
+     * root screen scrollable lets an over-wide status label create LVGL's
+     * automatic horizontal scrollbar along the bottom edge. */
+    lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_bg_color(screen, lv_color_hex(COLOR_BG), 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
     active_ui_settings = settings;
