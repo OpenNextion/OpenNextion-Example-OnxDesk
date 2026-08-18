@@ -742,7 +742,7 @@ static void loading_row(lv_obj_t *screen, int y, const char *label, const char *
 static void render_loading(lv_obj_t *screen, const app_settings_t *settings) {
     const bool time_ready = network_time_is_synced();
     const bool sync_finished = network_initial_sync_complete();
-    add_arc_text(screen, "STARTING ONXDESK", &lv_font_montserrat_14, COLOR_TEAL, 100, 205, 335);
+    add_arc_text(screen, "STARTING OnxDesk", &lv_font_montserrat_14, COLOR_TEAL, 100, 205, 335);
     loading_row(screen, 96, "Wi-Fi", "Connected", COLOR_GREEN);
     loading_row(screen, 124, "Time", time_ready ? "Synchronized" : sync_finished ? "Will retry" : "Syncing...", time_ready ? COLOR_GREEN : sync_finished ? COLOR_MUTED : COLOR_TEAL);
     weather_snapshot_t weather = {0};
