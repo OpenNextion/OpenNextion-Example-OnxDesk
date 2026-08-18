@@ -701,13 +701,13 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
     if (!first_setup || show_qr) add_header(screen, "CITY SETUP");
     if (!show_qr) {
         if (first_setup) {
-            lv_obj_t *connected = panel_new(screen, 43, 48, 154, 27, COLOR_GREEN, LV_OPA_COVER);
-            lv_obj_set_style_radius(connected, LV_RADIUS_CIRCLE, 0);
-            lv_obj_t *connected_label = label_new(connected, "WI-FI CONNECTED", &lv_font_montserrat_14, COLOR_BG);
-            lv_obj_align(connected_label, LV_ALIGN_CENTER, 0, 0);
+            lv_obj_t *setup_prompt = panel_new(screen, 43, 48, 154, 27, COLOR_GREEN, LV_OPA_COVER);
+            lv_obj_set_style_radius(setup_prompt, LV_RADIUS_CIRCLE, 0);
+            lv_obj_t *prompt_label = label_new(setup_prompt, "SET UP YOUR CITY", &lv_font_montserrat_14, COLOR_BG);
+            lv_obj_align(prompt_label, LV_ALIGN_CENTER, 0, 0);
             lv_anim_t pulse;
             lv_anim_init(&pulse);
-            lv_anim_set_var(&pulse, connected);
+            lv_anim_set_var(&pulse, setup_prompt);
             lv_anim_set_exec_cb(&pulse, animate_background_opacity);
             lv_anim_set_values(&pulse, LV_OPA_COVER, LV_OPA_40);
             lv_anim_set_duration(&pulse, 650);
@@ -715,11 +715,9 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
             lv_anim_set_repeat_count(&pulse, LV_ANIM_REPEAT_INFINITE);
             lv_anim_set_path_cb(&pulse, lv_anim_path_ease_in_out);
             lv_anim_start(&pulse);
-            lv_obj_t *title = label_new(screen, "Set up your city", &lv_font_montserrat_20, COLOR_PRIMARY);
-            lv_obj_align(title, LV_ALIGN_CENTER, 0, -17);
             lv_obj_t *instruction = label_new(screen, "On your phone, join the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
             lv_obj_set_style_text_align(instruction, LV_TEXT_ALIGN_CENTER, 0);
-            lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 26);
+            lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 0);
             lv_obj_t *hint = label_new(screen, "Press to show setup QR", &lv_font_montserrat_14, COLOR_TEAL);
             lv_obj_align(hint, LV_ALIGN_CENTER, 0, 62);
             return;
