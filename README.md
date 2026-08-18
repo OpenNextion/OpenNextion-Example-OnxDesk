@@ -1,6 +1,6 @@
 # OnxDesk
 
-<!-- Add a device or UI photo here. -->
+![OnxDesk UI overview](assets/onxdesk-ui-overview.png)
 
 OnxDesk is an independent open-source prototype for a small, multi-function
 desktop companion. It combines a round display, a rotary encoder, Wi-Fi, and
