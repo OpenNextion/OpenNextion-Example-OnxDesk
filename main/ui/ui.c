@@ -136,11 +136,15 @@ static void add_temperature_range(lv_obj_t *screen, float low, float high, float
     snprintf(high_text, sizeof(high_text), "%.0f", high);
     lv_obj_t *low_label = label_new(screen, low_text, &lv_font_montserrat_16, COLOR_RAIN);
     lv_obj_t *high_label = label_new(screen, high_text, &lv_font_montserrat_16, COLOR_ORANGE);
-    lv_obj_set_pos(low_label, 24, 176);
+    lv_obj_t *low_prefix = label_new(screen, "L", &lv_font_montserrat_12, COLOR_RAIN);
+    lv_obj_set_pos(low_prefix, 22, 179);
+    lv_obj_set_pos(low_label, 34, 176);
     lv_obj_update_layout(low_label);
-    add_celsius_unit(screen, 26 + lv_obj_get_width(low_label), 179, 8, COLOR_RAIN);
+    add_celsius_unit(screen, 36 + lv_obj_get_width(low_label), 179, 8, COLOR_RAIN);
     lv_obj_update_layout(high_label);
     const int high_x = 216 - lv_obj_get_width(high_label) - 10;
+    lv_obj_t *high_prefix = label_new(screen, "H", &lv_font_montserrat_12, COLOR_ORANGE);
+    lv_obj_set_pos(high_prefix, high_x - 12, 179);
     lv_obj_set_pos(high_label, high_x, 176);
     add_celsius_unit(screen, high_x + lv_obj_get_width(high_label) + 2, 179, 8, COLOR_ORANGE);
 
@@ -153,8 +157,8 @@ static void add_temperature_range(lv_obj_t *screen, float low, float high, float
 
     const float range = high - low;
     float position = range > 0.1f ? (current - low) / range : 0.5f;
-    if (position < 0) position = 0;
-    if (position > 1) position = 1;
+    if (position < 0.0f) position = 0.0f;
+    if (position > 1.0f) position = 1.0f;
     const int marker_x = track_x + (int)(position * (track_width - 1)) - 5;
     lv_obj_t *marker = panel_new(screen, marker_x, track_y - 3, 11, 11, COLOR_PRIMARY, LV_OPA_COVER);
     lv_obj_set_style_radius(marker, LV_RADIUS_CIRCLE, 0);
