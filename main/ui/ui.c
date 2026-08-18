@@ -519,6 +519,10 @@ static void render_focus(lv_obj_t *screen, const navigation_t *navigation) {
     lv_obj_t *heading = label_new(screen, alerting ? "TIME'S UP" : pomodoro ? "POMODORO" : "COUNTDOWN",
                                   &lv_font_montserrat_16, alerting ? alert_foreground : COLOR_TEAL);
     lv_obj_align(heading, LV_ALIGN_TOP_MID, 0, 18);
+    if (!alerting && pomodoro) {
+        lv_obj_t *hint = label_new(screen, "25 min focus timer", &lv_font_montserrat_12, COLOR_SECONDARY);
+        lv_obj_align(hint, LV_ALIGN_TOP_MID, 0, 38);
+    }
     char time_text[12];
     snprintf(time_text, sizeof(time_text), "%02u:%02u", (unsigned)minutes, (unsigned)seconds);
     lv_obj_t *time_label = label_new(screen, time_text, &lv_font_montserrat_48,
