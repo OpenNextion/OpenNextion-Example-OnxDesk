@@ -511,8 +511,8 @@ static void render_focus(lv_obj_t *screen, const navigation_t *navigation) {
     const uint32_t seconds = remaining % 60;
     const bool pomodoro = navigation->focus_duration_seconds == 25 * 60;
     const bool alerting = navigation->focus_alert_until_us != 0;
-    const uint32_t alert_background = navigation->focus_alert_flash_on ? COLOR_ALERT_RED : COLOR_PRIMARY;
-    const uint32_t alert_foreground = navigation->focus_alert_flash_on ? COLOR_PRIMARY : COLOR_ALERT_RED;
+    const uint32_t alert_background = navigation->focus_alert_flash_on ? COLOR_ALERT_RED : COLOR_BG;
+    const uint32_t alert_foreground = COLOR_PRIMARY;
     if (alerting) {
         lv_obj_set_style_bg_color(screen, lv_color_hex(alert_background), 0);
         lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
