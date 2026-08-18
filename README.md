@@ -70,8 +70,9 @@ power/backlight control. Compatibility with any other board is not implied.
 6. Search for and save a city. OnxDesk then synchronizes time and weather and
    opens the Clock screen.
 
-The final five characters of the setup-network name are generated per device
-and persist across normal restarts. A factory reset generates a new name.
+The final five characters of the setup-network name are derived from the
+device identity. They distinguish devices while remaining unchanged across
+normal restarts and factory resets.
 
 ### Optional: enable Markets with a Finnhub API key
 

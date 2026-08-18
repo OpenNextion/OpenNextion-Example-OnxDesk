@@ -5,11 +5,10 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "esp_check.h"
-#include "esp_random.h"
+#include "esp_mac.h"
 
 #define SETTINGS_NAMESPACE "onxdesk"
 #define SETTINGS_KEY "settings"
-#define SETUP_SSID_KEY "setup_ssid"
 
 static void settings_defaults(app_settings_t *settings) {
     memset(settings, 0, sizeof(*settings));
@@ -77,20 +76,20 @@ esp_err_t settings_factory_reset(void) {
 
 esp_err_t settings_get_setup_ssid(char *ssid, size_t ssid_size) {
     if (ssid == NULL || ssid_size < sizeof("OnxDesk-ABCDE")) return ESP_ERR_INVALID_SIZE;
-    nvs_handle_t handle;
-    ESP_RETURN_ON_ERROR(nvs_open(SETTINGS_NAMESPACE, NVS_READWRITE, &handle), "settings", "open NVS");
-    size_t saved_size = ssid_size;
-    esp_err_t error = nvs_get_str(handle, SETUP_SSID_KEY, ssid, &saved_size);
-    if (error == ESP_ERR_NVS_NOT_FOUND) {
-        static const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        char suffix[6] = {0};
-        for (size_t index = 0; index < sizeof(suffix) - 1; index++) suffix[index] = alphabet[esp_random() % (sizeof(alphabet) - 1)];
-        snprintf(ssid, ssid_size, "OnxDesk-%s", suffix);
-        error = nvs_set_str(handle, SETUP_SSID_KEY, ssid);
-        if (error == ESP_OK) error = nvs_commit(handle);
+    static const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    uint8_t mac[6] = {0};
+    ESP_RETURN_ON_ERROR(esp_read_mac(mac, ESP_MAC_WIFI_STA), "settings", "read base MAC");
+
+    /* Five base-32 characters encode the unique low 24 bits of the Wi-Fi MAC.
+     * Unlike an NVS random value, this remains stable after factory reset. */
+    uint32_t device_id = ((uint32_t)mac[3] << 16) | ((uint32_t)mac[4] << 8) | mac[5];
+    char suffix[6] = {0};
+    for (int index = 4; index >= 0; index--) {
+        suffix[index] = alphabet[device_id & 0x1F];
+        device_id >>= 5;
     }
-    nvs_close(handle);
-    return error;
+    snprintf(ssid, ssid_size, "OnxDesk-%s", suffix);
+    return ESP_OK;
 }
 
 bool settings_has_market_key(const app_settings_t *settings) {

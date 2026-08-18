@@ -10,6 +10,6 @@ idf_component_register(
         "services/providers.c"
     INCLUDE_DIRS "include"
     REQUIRES
-        driver esp_lcd esp_timer esp_psram nvs_flash spi_flash esp_app_format esp_lcd_gc9a01 esp_lvgl_port lvgl
+        driver esp_hw_support esp_lcd esp_timer esp_psram nvs_flash spi_flash esp_app_format esp_lcd_gc9a01 esp_lvgl_port lvgl
         esp_event esp_netif esp_wifi esp_http_server esp_http_client esp-tls mbedtls json
 )
