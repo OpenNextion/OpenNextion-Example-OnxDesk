@@ -718,7 +718,7 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
             lv_obj_t *instruction = label_new(screen, "On your phone, join the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
             lv_obj_set_style_text_align(instruction, LV_TEXT_ALIGN_CENTER, 0);
             lv_obj_align(instruction, LV_ALIGN_CENTER, 0, 0);
-            lv_obj_t *action = panel_new(screen, 28, 173, 184, 32, COLOR_TEAL, LV_OPA_20);
+            lv_obj_t *action = panel_new(screen, 28, 160, 184, 32, COLOR_TEAL, LV_OPA_20);
             lv_obj_set_style_radius(action, LV_RADIUS_CIRCLE, 0);
             lv_obj_set_style_border_width(action, 1, 0);
             lv_obj_set_style_border_color(action, lv_color_hex(COLOR_TEAL), 0);
