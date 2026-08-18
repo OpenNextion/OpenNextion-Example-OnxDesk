@@ -67,6 +67,9 @@ void navigation_short_press(navigation_t *navigation) {
     } else if (navigation->page == PAGE_SETTINGS_MENU && navigation->settings_item == SETTINGS_HOME_PAGES) {
         navigation->parent_page = PAGE_SETTINGS_MENU;
         navigation->page = PAGE_HOME_PAGES;
+    } else if (navigation->page == PAGE_SETTINGS_MENU && navigation->settings_item == SETTINGS_ABOUT) {
+        navigation->parent_page = PAGE_SETTINGS_MENU;
+        navigation->page = PAGE_ABOUT;
     } else if (navigation->page == PAGE_SETTINGS_MENU && navigation->settings_item == SETTINGS_DISPLAY_TEST) {
         navigation->parent_page = PAGE_SETTINGS_MENU;
         navigation->page = PAGE_DISPLAY_TEST;
@@ -98,6 +101,7 @@ bool navigation_long_press(navigation_t *navigation) {
             }
             return false;
         case PAGE_HOME_PAGES: navigation->page = PAGE_SETTINGS_MENU; return true;
+        case PAGE_ABOUT: navigation->page = PAGE_SETTINGS_MENU; return true;
         case PAGE_DISPLAY_TEST: navigation->page = PAGE_SETTINGS_MENU; return true;
         case PAGE_CONFIG_URL: navigation->page = navigation->parent_page; return true;
         case PAGE_CITY_SETUP:
@@ -117,6 +121,6 @@ bool navigation_long_press(navigation_t *navigation) {
 }
 
 const char *navigation_page_name(app_page_t page) {
-    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "Focus", "Settings", "Display test", "Wi-Fi setup", "Loading", "Settings menu", "Local configuration", "City setup", "Wi-Fi test", "Home pages" };
-    return page <= PAGE_HOME_PAGES ? names[page] : "Unknown";
+    static const char *names[] = { "Clock", "Weather", "Crypto", "Markets", "Focus", "Settings", "Display test", "Wi-Fi setup", "Loading", "Settings menu", "Local configuration", "City setup", "Wi-Fi test", "Home pages", "About" };
+    return page <= PAGE_ABOUT ? names[page] : "Unknown";
 }

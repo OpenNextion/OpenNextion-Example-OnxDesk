@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "esp_app_desc.h"
 #include "esp_check.h"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
@@ -25,6 +26,7 @@
 #define COLOR_CLOUD    0xF7F8FF
 #define COLOR_RAIN     0x5F9EFF
 #define COLOR_SNOW     0xBDE7FF
+#define GITHUB_ISSUES_URL "https://github.com/OpenNextion/OpenNextion-Example-OnxDesk/issues"
 
 static lv_display_t *lvgl_display;
 static const app_settings_t *active_ui_settings;
@@ -584,6 +586,33 @@ static void render_home_pages(lv_obj_t *screen, const navigation_t *navigation, 
     add_channel_nav(screen, PAGE_SETTINGS);
 }
 
+static void render_about(lv_obj_t *screen) {
+    const esp_app_desc_t *description = esp_app_get_description();
+    const char *version = description != NULL && description->version[0] != '\0' ? description->version : "Unknown";
+    add_header(screen, "ABOUT");
+    lv_obj_t *project = label_new(screen, "OnxDesk", &lv_font_montserrat_20, COLOR_PRIMARY);
+    lv_obj_align(project, LV_ALIGN_TOP_MID, 0, 46);
+    lv_obj_t *firmware = label_new(screen, "FIRMWARE", &lv_font_montserrat_12, COLOR_MUTED);
+    lv_obj_align(firmware, LV_ALIGN_TOP_MID, 0, 71);
+    lv_obj_t *version_label = label_new(screen, version, &lv_font_montserrat_12, COLOR_TEAL);
+    lv_obj_set_width(version_label, 180);
+    lv_obj_set_style_text_align(version_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_long_mode(version_label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
+    lv_obj_align(version_label, LV_ALIGN_TOP_MID, 0, 86);
+    lv_obj_t *qr = lv_qrcode_create(screen);
+    lv_qrcode_set_size(qr, 108);
+    lv_qrcode_set_dark_color(qr, lv_color_hex(COLOR_BG));
+    lv_qrcode_set_light_color(qr, lv_color_hex(COLOR_PRIMARY));
+    lv_qrcode_set_quiet_zone(qr, true);
+    if (lv_qrcode_update(qr, GITHUB_ISSUES_URL, strlen(GITHUB_ISSUES_URL)) != LV_RESULT_OK) {
+        lv_obj_del(qr);
+    } else {
+        lv_obj_align(qr, LV_ALIGN_CENTER, 0, 38);
+    }
+    lv_obj_t *issues = label_new(screen, "GITHUB ISSUES", &lv_font_montserrat_12, COLOR_SECONDARY);
+    lv_obj_align(issues, LV_ALIGN_BOTTOM_MID, 0, -10);
+}
+
 static void render_config_url(lv_obj_t *screen, const navigation_t *navigation) {
     char url[40] = "Waiting for Wi-Fi";
     const bool wifi_setup = navigation != NULL && navigation->settings_item == SETTINGS_WIFI;
@@ -748,6 +777,7 @@ void app_ui_render(const navigation_t *navigation, const app_settings_t *setting
         case PAGE_CITY_SETUP: render_city_setup(screen, navigation); break;
         case PAGE_WIFI_TEST: render_wifi_test(screen); break;
         case PAGE_HOME_PAGES: render_home_pages(screen, navigation, settings); break;
+        case PAGE_ABOUT: render_about(screen); break;
         default: break;
     }
     add_focus_indicator(screen, navigation);

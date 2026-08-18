@@ -27,6 +27,8 @@ On Focus, the default 25-minute duration is a Pomodoro. Rotate normally to move 
 
 Settings → **Home pages** can hide Weather, Crypto, Markets, and Focus from the top-level rotation. Clock and Settings remain available so the device always has a home screen and a way to re-enable pages. Page order stays fixed in this release.
 
+Settings → **About** shows the project name and the exact ESP-IDF firmware version, plus a QR code for the [GitHub Issues page](https://github.com/OpenNextion/OpenNextion-Example-OnxDesk/issues).
+
 ## Wi-Fi setup
 
 On a new device (or after a BOOT factory reset), OnxDesk starts an open `OnxDesk-ABCDE` Wi-Fi network and shows its exact name on the display. The final five characters are generated per device and persist across normal restarts; a factory reset generates a new name. Join that network with a phone, then open [http://192.168.4.1](http://192.168.4.1) if the captive-portal browser does not appear automatically. Choose a nearby 2.4 GHz network or enter its SSID, enter its password, and submit the form. The first-run page is deliberately Wi-Fi-only. If no city is stored after the connection succeeds, OnxDesk shows a large QR code for its LAN `/settings` page; connect the phone to the same router before scanning it. Saving a city starts the weather request, then opens the Clock screen.
