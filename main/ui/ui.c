@@ -51,6 +51,10 @@ static lv_obj_t *panel_new(lv_obj_t *parent, int x, int y, int width, int height
     return panel;
 }
 
+static void animate_background_opacity(void *target, int32_t opacity) {
+    lv_obj_set_style_bg_opa((lv_obj_t *)target, (lv_opa_t)opacity, 0);
+}
+
 static void add_channel_nav(lv_obj_t *screen, app_page_t page) {
     static const app_page_t pages[] = { PAGE_CLOCK, PAGE_WEATHER, PAGE_CRYPTO, PAGE_MARKETS, PAGE_FOCUS, PAGE_SETTINGS };
     static const home_page_t bits[] = { HOME_CLOCK, HOME_WEATHER, HOME_CRYPTO, HOME_MARKETS, HOME_FOCUS, HOME_SETTINGS };
@@ -701,6 +705,16 @@ static void render_city_setup(lv_obj_t *screen, const navigation_t *navigation) 
             lv_obj_set_style_radius(connected, LV_RADIUS_CIRCLE, 0);
             lv_obj_t *connected_label = label_new(connected, "WI-FI CONNECTED", &lv_font_montserrat_14, COLOR_BG);
             lv_obj_align(connected_label, LV_ALIGN_CENTER, 0, 0);
+            lv_anim_t pulse;
+            lv_anim_init(&pulse);
+            lv_anim_set_var(&pulse, connected);
+            lv_anim_set_exec_cb(&pulse, animate_background_opacity);
+            lv_anim_set_values(&pulse, LV_OPA_COVER, LV_OPA_40);
+            lv_anim_set_duration(&pulse, 650);
+            lv_anim_set_reverse_duration(&pulse, 650);
+            lv_anim_set_repeat_count(&pulse, LV_ANIM_REPEAT_INFINITE);
+            lv_anim_set_path_cb(&pulse, lv_anim_path_ease_in_out);
+            lv_anim_start(&pulse);
             lv_obj_t *title = label_new(screen, "Set up your city", &lv_font_montserrat_20, COLOR_PRIMARY);
             lv_obj_align(title, LV_ALIGN_CENTER, 0, -17);
             lv_obj_t *instruction = label_new(screen, "On your phone, join the same\nWi-Fi router as OnxDesk", &lv_font_montserrat_16, COLOR_SECONDARY);
