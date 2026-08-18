@@ -26,10 +26,14 @@ community prototype made to explore this form factor.
 
 | Board | Display | Input | Status |
 | --- | --- | --- | --- |
-| OpenNextion ONX2424G013 | 1.28 inch, 240×240 GC9A01N round LCD | Rotary encoder and BOOT button | Current implementation target |
+| [OpenNextion ONX2424G013][onx2424g013-wiki] | 1.28 inch, 240×240 GC9A01N round LCD | Rotary encoder and BOOT button | Current implementation target |
 
 The ONX2424G013 is the first OpenNextion-family board supported by this
 repository. Support for other OpenNextion boards may be added later.
+
+The linked ONX2424G013 Wiki address follows the public OpenNextion board-page
+naming convention and is included as a placeholder. Official board
+documentation has not been published yet.
 
 The OnxDesk application is also suitable in principle for other ESP32-based
 prototype rotary displays. A port still requires board-specific work for the
@@ -157,3 +161,5 @@ not need it.
 - You are responsible for independently verifying data, following provider terms
   of use, protecting private credentials, and understanding the risks of
   flashing and using prototype firmware.
+
+[onx2424g013-wiki]: https://nextion.tech/wiki/onx2424g013/
