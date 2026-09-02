@@ -56,6 +56,34 @@ power/backlight control. Compatibility with any other board is not implied.
 - **Settings → About** shows the project name, exact ESP-IDF firmware version,
   and a QR code for the GitHub Issues page.
 
+## Firmware Download and Flashing
+
+Download firmware from the [GitHub Releases page](https://github.com/OpenNextion/OpenNextion-Example-OnxDesk/releases).
+The `v0.1.0` release provides one merged, full-flash binary for the supported
+display model:
+
+| Display model | Shape | Firmware file | Flash address |
+| --- | --- | --- | --- |
+| [ONX2424G013][onx2424g013-wiki] | Round | `onxdesk-v0.1.0-onx2424g013.bin` | `0x0` |
+
+Connect the board with a data-capable USB cable, then flash the matching binary
+at address `0x0`:
+
+```sh
+python -m esptool --chip esp32s3 -p /dev/cu.usbmodemXXXX -b 921600 write_flash \
+  0x0 ./onxdesk-v0.1.0-onx2424g013.bin
+```
+
+Replace the serial port and firmware filename for your computer. If the tool
+cannot connect, hold **BOOT**, start the command, then release **BOOT** once
+the connection starts. If `921600` is unreliable, retry with `460800`.
+
+This release image includes the bootloader, partition table, and application;
+full firmware flashing is recommended. OTA firmware downloads are not provided
+unless that path is separately validated. See [Build, Flash, and Merge
+Firmware](docs/build-and-flash.md) for source builds, erasing Flash, logs, and
+creating a merged BIN.
+
 ## Quick start
 
 1. Power on a new device, or factory-reset it by holding **BOOT** (GPIO0) for
